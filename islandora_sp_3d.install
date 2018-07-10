@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * Install hooks for this module.
+ */
+
+/**
+ * Implements hook_install().
+ *
+ * @see islandora_sp_3d_islandora_required_objects()
+ */
+function islandora_sp_3d_install() {
+  module_load_include('inc', 'islandora', 'includes/solution_packs');
+  islandora_install_solution_pack('islandora_sp_3d');
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function islandora_sp_3d_uninstall() {
+  module_load_include('inc', 'islandora', 'includes/solution_packs');
+  islandora_install_solution_pack('islandora_sp_3d', 'uninstall');
+}
