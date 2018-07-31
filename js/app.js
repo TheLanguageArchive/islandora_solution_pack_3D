@@ -17,12 +17,13 @@ function SP3DViewer(options) {
         throw new Error('No container selector specified');
     }
 
-    this.options   = {
+    this.options = {
 
         file: options.file,
         container: options.container,
-        width: options.width || 500,
-        height: options.height || 500,
+        width: options.width,
+        height: options.height,
+        background: options.background,
         antialias: options.antialias || true,
     };
 
@@ -55,8 +56,8 @@ SP3DViewer.prototype = {
 
         if (null === this.scene) {
 
-            this.scene       = new THREE.Scene();
-            this.scene.fog   = new THREE.FogExp2(0xc8e0ff, 0.0003);
+            this.scene     = new THREE.Scene();
+            this.scene.fog = new THREE.FogExp2(Drupal.settings.islandora_sp_3d.settings.background, 0.0003);
         }
 
         return this.scene;
@@ -69,14 +70,13 @@ SP3DViewer.prototype = {
 
         if (null === this.camera) {
 
-            this.angle       = 45;
-            this.aspectRatio = this.options.width / this.options.height;
-            this.near        = 0.1;
-            this.far         = 1000;
+            this.angle        = 45;
+            this.aspectRatio  = this.options.width / this.options.height;
+            this.near         = 0.1;
+            this.far          = 1000;
 
-            this.camera      = new THREE.PerspectiveCamera(this.angle, this.aspectRatio, this.near, this.far);
+            this.camera       = new THREE.PerspectiveCamera(this.angle, this.aspectRatio, this.near, this.far);
             this.camera.position.set(0, 0, 0);
-            // this.camera.lookAt(new THREE.Vector3(0, 0, 0));
 
             this.cameraHelper = new THREE.CameraHelper(this.camera);
         }
@@ -235,7 +235,10 @@ var onPageLoaded = function() {
     var viewer = new SP3DViewer({
 
         file: '/fedora/objects/' + Drupal.settings.islandora_sp_3d.pid + '/datastreams/OBJ/content',
-        container: '[data-role="webgl-container"]'
+        container: '[data-role="webgl-container"]',
+        width: Drupal.settings.islandora_sp_3d.settings.width,
+        height: Drupal.settings.islandora_sp_3d.settings.height,
+        background: Drupal.settings.islandora_sp_3d.settings.background
     });
 
     viewer.animate();
