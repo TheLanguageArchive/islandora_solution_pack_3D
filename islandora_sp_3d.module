@@ -90,10 +90,12 @@ function islandora_sp_3d_islandora_required_objects(IslandoraTuque $connection) 
 */
 function islandora_sp_3d_islandora_sp_3d_islandora_view_object($object, $page_number, $page_size) {
 
-    $data       = islandora_compound_object_retrieve_compound_info($object);
-    $datastream = $object->getDatastream('OBJ');
+    module_load_include('inc', 'islandora_sp_3d', 'includes/DaeFetcher');
 
-    if ($datastream && $datastream->mimetype === 'model/vnd.collada+xml' && islandora_datastream_access(ISLANDORA_VIEW_OBJECTS, $datastream)) {
+    $fetcher    = new DaeFetcher($object);
+    $datastream = $fetcher->getDatastream();
+
+    if ($datastream) {
 
         $modulePath = drupal_get_path('module', 'islandora_sp_3d');
 
@@ -103,32 +105,18 @@ function islandora_sp_3d_islandora_sp_3d_islandora_view_object($object, $page_nu
         drupal_add_js($modulePath . '/js/three.orbit.controls.js');
         drupal_add_js($modulePath . '/js/app.js');
 
-        $templateData = [
+        $data = [
 
-            'pid'    => $object->id,
-            'images' => [],
-            'url'    => url('islandora/object/' . $object->id . '/datastream/OBJ/view'),
+            'url'      => url('islandora/object/' . $datastream->parent->id . '/datastream/OBJ/view'),
+            'textures' => $fetcher->getTextures(),
         ];
 
-        if (isset($data['siblings']) && count($data['siblings']) > 0) {
-
-            foreach ($data['siblings_detailed'] as $sibling) {
-
-                $siblingObject = islandora_object_load($sibling['pid']);
-                $datastream    = $siblingObject->getDatastream('OBJ');
-
-                if ($datastream && islandora_datastream_access(ISLANDORA_VIEW_OBJECTS, $siblingObject->getDatastream('OBJ'))) {
-                    $templateData['images'][$sibling['title']] = url('islandora/object/' . $siblingObject->id . '/datastream/OBJ/view');
-                }
-            }
-        }
-
-        $templateData['settings'] = [
+        $data['settings'] = [
             'background' => variable_get('islandora_sp_3d_background'),
         ];
 
         drupal_add_js([
-            'islandora_sp_3d' => $templateData,
+            'islandora_sp_3d' => $data,
         ], 'setting');
     }
 
@@ -141,6 +129,26 @@ function islandora_sp_3d_islandora_sp_3d_islandora_view_object($object, $page_nu
 
 function islandora_sp_3d_file_mimetype_mapping_alter(&$mapping) {
 
-    $mapping['mimetypes']['dae'] = 'model/vnd.collada+xml';
-    $mapping['extensions']['dae'] = 'dae';
+    $mapping['mimetypes']['dae']   = 'model/vnd.collada+xml';
+    $mapping['mimetypes']['fbx']   = 'application/octet-stream';
+    $mapping['mimetypes']['OSGB']  = 'application/octet-stream';
+
+    $mapping['extensions']['dae']  = 'dae';
+    $mapping['extensions']['fbx']  = 'fbx';
+    $mapping['extensions']['OSGB'] = 'OSGB';
+}
+
+function islandora_sp_3d_islandora_sp_3d_islandora_ingest_steps() {
+
+    return [
+
+        'islandora_sp_3d' => [
+
+            'weight'  => 10,
+            'type'    => 'form',
+            'form_id' => 'islandora_sp_3d_3d_upload',
+            'module'  => 'islandora_sp_3d',
+            'file'    => 'includes/3d_upload.form.inc',
+        ],
+    ];
 }

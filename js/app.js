@@ -175,8 +175,8 @@ SP3DViewer.prototype = {
 
             image = image.basename();
 
-            if (typeof Drupal.settings.islandora_sp_3d.images[image] !== 'undefined') {
-                return Drupal.settings.islandora_sp_3d.images[image];
+            if (typeof Drupal.settings.islandora_sp_3d.textures[image] !== 'undefined') {
+                return Drupal.settings.islandora_sp_3d.textures[image];
             }
 
             return image;
