@@ -88,15 +88,12 @@ function islandora_sp_3d_islandora_required_objects(IslandoraTuque $connection) 
 /**
 * Implements hook_CMODEL_PID_islandora_view_object().
 */
-function islandora_sp_3d_islandora_view_object($object, $page_number, $page_size) {
+function islandora_sp_3d_islandora_sp_3d_islandora_view_object($object, $page_number, $page_size) {
 
     $data       = islandora_compound_object_retrieve_compound_info($object);
     $datastream = $object->getDatastream('OBJ');
 
-    // header('Content-Type: text/xml');
-    // echo $datastream->content;exit;
-
-    if ($datastream && $datastream->mimetype === 'model/vnd.collada+xml') {
+    if ($datastream && $datastream->mimetype === 'model/vnd.collada+xml' && islandora_datastream_access(ISLANDORA_VIEW_OBJECTS, $datastream)) {
 
         $modulePath = drupal_get_path('module', 'islandora_sp_3d');
 
@@ -106,41 +103,39 @@ function islandora_sp_3d_islandora_view_object($object, $page_number, $page_size
         drupal_add_js($modulePath . '/js/three.orbit.controls.js');
         drupal_add_js($modulePath . '/js/app.js');
 
-        $images = [];
+        $templateData = [
+
+            'pid'    => $object->id,
+            'images' => [],
+            'url'    => url('islandora/object/' . $object->id . '/datastream/OBJ/view'),
+        ];
 
         if (isset($data['siblings']) && count($data['siblings']) > 0) {
 
             foreach ($data['siblings_detailed'] as $sibling) {
-                $images[$sibling['title']] = '/fedora/objects/' . $sibling['pid'] . '/datastreams/OBJ/content';
+
+                $siblingObject = islandora_object_load($sibling['pid']);
+                $datastream    = $siblingObject->getDatastream('OBJ');
+
+                if ($datastream && islandora_datastream_access(ISLANDORA_VIEW_OBJECTS, $siblingObject->getDatastream('OBJ'))) {
+                    $templateData['images'][$sibling['title']] = url('islandora/object/' . $siblingObject->id . '/datastream/OBJ/view');
+                }
             }
-
-            $data = [
-
-                'pid'    => $object->id,
-                'images' => $images,
-            ];
-
-        } else {
-
-            $data = [
-                'pid' => $object->id,
-            ];
         }
 
-        $data['settings'] = [
-
-            'width'      => variable_get('islandora_sp_3d_width'),
-            'height'     => variable_get('islandora_sp_3d_height'),
+        $templateData['settings'] = [
             'background' => variable_get('islandora_sp_3d_background'),
         ];
 
         drupal_add_js([
-            'islandora_sp_3d' => $data,
+            'islandora_sp_3d' => $templateData,
         ], 'setting');
     }
 
     return theme('islandora_sp_3d_view', [
-        'islandora_object' => $object
+
+        'islandora_object' => $object,
+        'max_width'        => variable_get('islandora_sp_3d_width'),
     ]);
 }
 

@@ -7,5 +7,5 @@
  */
 ?>
 <div class="islandora-sp-3d islandora" vocab="http://schema.org/" prefix="dcterms: http://purl.org/dc/terms/" typeof="3DObject">
-    <div data-role="webgl-container"></div>
+    <div data-role="webgl-container" style="width: 100%; max-width: <?php echo $max_width; ?>px;"></div>
 </div>

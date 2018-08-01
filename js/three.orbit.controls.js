@@ -423,6 +423,10 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	}
 
+	// make dollyIn/dollyOut public
+	this.dollyIn  = dollyIn;
+	this.dollyOut = dollyOut;
+
 	//
 	// event callbacks - update the object state
 	//

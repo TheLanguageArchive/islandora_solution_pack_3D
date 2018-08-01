@@ -1,7 +1,7 @@
 /**
  * Displaying 3D models
  *
- * Usage: var viewer = new SP3DViewer({file: '', container: '#container'})
+ * Usage: var viewer = new SP3DViewer({url: '', container: '#container', width: 500, height: 500, background: ''})
  *        viewer.animate();
  *
  * @author  Ibrahim Abdullah <ibrahim@mpi.nl>
@@ -9,20 +9,22 @@
  */
 function SP3DViewer(options) {
 
-    if (!options.file) {
-        throw new Error('No file specified');
+    if (!options.url) {
+        throw new Error('No url specified');
     }
 
     if (!options.container || typeof options.container !== 'string') {
         throw new Error('No container selector specified');
     }
 
+    if (!options.background) {
+        throw new Error('No background color specified');
+    }
+
     this.options = {
 
-        file: options.file,
+        url: options.url,
         container: options.container,
-        width: options.width,
-        height: options.height,
         background: options.background,
         antialias: options.antialias || true,
     };
@@ -70,12 +72,12 @@ SP3DViewer.prototype = {
 
         if (null === this.camera) {
 
-            this.angle        = 45;
-            this.aspectRatio  = this.options.width / this.options.height;
-            this.near         = 0.1;
-            this.far          = 1000;
+            this.angle       = 45;
+            this.aspectRatio = this.options.width / this.options.height;
+            this.near        = 0.1;
+            this.far         = 1000;
 
-            this.camera       = new THREE.PerspectiveCamera(this.angle, this.aspectRatio, this.near, this.far);
+            this.camera = new THREE.PerspectiveCamera(this.angle, this.aspectRatio, this.near, this.far);
             this.camera.position.set(0, 0, 0);
 
             this.cameraHelper = new THREE.CameraHelper(this.camera);
@@ -108,6 +110,10 @@ SP3DViewer.prototype = {
     prepareContainer: function() {
 
         this.container = document.querySelector(this.options.container);
+
+        this.options.width  = this.container.clientWidth;
+        this.options.height = this.container.clientWidth;
+
         this.container.appendChild(this.getRenderer().domElement);
     },
 
@@ -122,6 +128,8 @@ SP3DViewer.prototype = {
             this.controls.target      = new THREE.Vector3(0, 0, -100);
             this.controls.maxDistance = 250;
             this.controls.minDistance = 40;
+
+            this.controls.dollyIn(3);
         }
 
         return this.controls;
@@ -174,7 +182,7 @@ SP3DViewer.prototype = {
             return image;
         };
 
-        loader.load(this.options.file, function(collada) {
+        loader.load(this.options.url, function(collada) {
 
             var mesh = collada.scene;
 
@@ -227,6 +235,31 @@ SP3DViewer.prototype = {
         requestAnimationFrame(this.animate.bind(this));
         this.render();
         this.update();
+    },
+
+    /**
+     * Updating dimensions
+     */
+    updateDimensions: function() {
+
+        this.options.width  = this.container.clientWidth;
+        this.options.height = this.container.clientWidth;
+
+        this.getCamera().aspectRatio = this.options.width / this.options.height;
+        this.getCamera().updateProjectionMatrix();
+
+        this.getRenderer().setSize(this.options.width, this.options.height);
+    }
+};
+
+window.attachEventListener = function(event, func) {
+
+    if (window.addEventListener) {
+        window.addEventListener(event, func, false);
+    } else if (window.attachEvent) {
+        window.attachEvent('on' + event, func);
+    } else {
+        window['on' + resize] = func;
     }
 };
 
@@ -234,20 +267,13 @@ var onPageLoaded = function() {
 
     var viewer = new SP3DViewer({
 
-        file: '/fedora/objects/' + Drupal.settings.islandora_sp_3d.pid + '/datastreams/OBJ/content',
+        url: Drupal.settings.islandora_sp_3d.url,
         container: '[data-role="webgl-container"]',
-        width: Drupal.settings.islandora_sp_3d.settings.width,
-        height: Drupal.settings.islandora_sp_3d.settings.height,
         background: Drupal.settings.islandora_sp_3d.settings.background
     });
 
     viewer.animate();
+    window.attachEventListener('resize', viewer.updateDimensions.bind(viewer));
 };
 
-if (window.addEventListener) {
-    window.addEventListener('load', onPageLoaded, false);
-} else if (window.attachEvent) {
-    window.attachEvent('onload', onPageLoaded);
-} else {
-    window.onload = onPageLoaded;
-}
+window.attachEventListener('load', onPageLoaded);

@@ -36,19 +36,12 @@ function islandora_sp_3d_admin(array $form, array &$form_state) {
             '#collapsible' => false,
             '#collapsed'   => false,
 
-            # width field
             'islandora_sp_3d_width' => [
 
                 '#type'          => 'textfield',
-                '#title'         => t('Provide width of 3D viewer in pixels'),
-                '#default_value' => variable_get('islandora_sp_3d_width', 500),
-            ],
-
-            'islandora_sp_3d_height' => [
-
-                '#type'          => 'textfield',
-                '#title'         => t('Provide height of 3D viewer in pixels'),
-                '#default_value' => variable_get('islandora_sp_3d_height', 500),
+                '#title'         => t('Provide maximum width of 3D viewer'),
+                '#description'   => t('You can provide the maximum width of the Islandora Solution Pack 3D Viewer'),
+                '#default_value' => variable_get('islandora_sp_3d_width', 690),
             ],
 
             'islandora_sp_3d_background' => [
@@ -78,7 +71,6 @@ function islandora_sp_3d_admin_submit($form, &$form_state) {
         case 'edit-reset':
 
             variable_del('islandora_sp_3d_width');
-            variable_del('islandora_sp_3d_height');
             variable_del('islandora_sp_3d_background');
 
             drupal_set_message('The configuration options were successfully resetted');
@@ -103,11 +95,7 @@ function islandora_sp_3d_admin_validate($form, &$form_state) {
     }
 
     if (intval($form_state['values']['islandora_sp_3d_width']) <= 0) {
-        form_set_error('islandora_sp_3d_width', 'Please provide width greater than 0 and only use numbers');
-    }
-
-    if (intval($form_state['values']['islandora_sp_3d_height']) <= 0) {
-        form_set_error('islandora_sp_3d_height', 'Please provide height greater than 0 and only use numbers');
+        form_set_error('islandora_sp_3d_width', 'Please provide a correct maximum width and make sure it is greater than 0');
     }
 
     if (!preg_match('/#([a-f0-9]{3}){1,2}\b/i', $form_state['values']['islandora_sp_3d_background'])) {
