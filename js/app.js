@@ -127,7 +127,7 @@ SP3DViewer.prototype = {
             this.controls             = new THREE.OrbitControls(this.getCamera(), this.container);
             this.controls.target      = new THREE.Vector3(0, 0, -100);
             this.controls.maxDistance = 250;
-            this.controls.minDistance = 40;
+            this.controls.minDistance = 20;
 
             this.controls.dollyIn(3);
         }
