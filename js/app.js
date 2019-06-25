@@ -29,11 +29,11 @@ function SP3DViewer(options) {
         antialias: options.antialias || true,
     };
 
-    this.scene    = null;
+    this.scene = null;
     this.controls = null;
-    this.camera   = null;
+    this.camera = null;
     this.renderer = null;
-    this.clock    = null;
+    this.clock = null;
 
     this.initialize();
 }
@@ -58,7 +58,7 @@ SP3DViewer.prototype = {
 
         if (null === this.scene) {
 
-            this.scene     = new THREE.Scene();
+            this.scene = new THREE.Scene();
             this.scene.fog = new THREE.FogExp2(Drupal.settings.islandora_sp_3d.settings.background, 0.0003);
         }
 
@@ -72,10 +72,10 @@ SP3DViewer.prototype = {
 
         if (null === this.camera) {
 
-            this.angle       = 45;
+            this.angle = 45;
             this.aspectRatio = this.options.width / this.options.height;
-            this.near        = 0.1;
-            this.far         = 1000;
+            this.near = 0.1;
+            this.far = 1000;
 
             this.camera = new THREE.PerspectiveCamera(this.angle, this.aspectRatio, this.near, this.far);
             this.camera.position.set(0, 0, 0);
@@ -111,7 +111,7 @@ SP3DViewer.prototype = {
 
         this.container = document.querySelector(this.options.container);
 
-        this.options.width  = this.container.clientWidth;
+        this.options.width = this.container.clientWidth;
         this.options.height = this.container.clientWidth;
 
         this.container.appendChild(this.getRenderer().domElement);
@@ -124,8 +124,8 @@ SP3DViewer.prototype = {
 
         if (null === this.controls) {
 
-            this.controls             = new THREE.OrbitControls(this.getCamera(), this.container);
-            this.controls.target      = new THREE.Vector3(0, 0, -100);
+            this.controls = new THREE.OrbitControls(this.getCamera(), this.container);
+            this.controls.target = new THREE.Vector3(0, 0, -100);
             this.controls.maxDistance = 250;
             this.controls.minDistance = 20;
 
@@ -164,24 +164,28 @@ SP3DViewer.prototype = {
      */
     prepareModel: function() {
 
-        var self   = this;
-        var loader = new THREE.ColladaLoader();
+        var self = this;
+        if (Drupal.settings.islandora_sp_3d.mime == 'application/collada-zipped') {
+            var loader = new THREE.ColladaArchiveLoader();
+        }
+        if (Drupal.settings.islandora_sp_3d.mime == 'model/vnd.collada+xml') {
+            var loader = new THREE.ColladaLoader();
 
-        // removing path from loader to allow for own path override
-        loader.setPath('');
+            // removing path from loader to allow for own path override
+            loader.setPath('');
 
-        // adding parseImageUrl to replace relative path to absolute path
-        THREE.ColladaLoader.prototype.parseImageUrl = function(image) {
+            // adding parseImageUrl to replace relative path to absolute path
+            THREE.ColladaLoader.prototype.parseImageUrl = function(image) {
 
-            image = image.basename();
+                image = image.basename();
 
-            if (typeof Drupal.settings.islandora_sp_3d.textures[image] !== 'undefined') {
-                return Drupal.settings.islandora_sp_3d.textures[image];
-            }
+                if (typeof Drupal.settings.islandora_sp_3d.textures[image] !== 'undefined') {
+                    return Drupal.settings.islandora_sp_3d.textures[image];
+                }
 
-            return image;
-        };
-
+                return image;
+            };
+        }
         loader.load(this.options.url, function(collada) {
 
             var mesh = collada.scene;
@@ -209,7 +213,7 @@ SP3DViewer.prototype = {
             var boundingBoxSize = box.max.sub(box.min);
             var height = boundingBoxSize.y;
 
-            mesh.position.y = (height / 2) *-1;
+            mesh.position.y = (height / 2) * -1;
         });
     },
 
@@ -242,7 +246,7 @@ SP3DViewer.prototype = {
      */
     updateDimensions: function() {
 
-        this.options.width  = this.container.clientWidth;
+        this.options.width = this.container.clientWidth;
         this.options.height = this.container.clientWidth;
 
         this.getCamera().aspectRatio = this.options.width / this.options.height;

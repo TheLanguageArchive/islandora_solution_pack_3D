@@ -21,5 +21,6 @@
     <form MIME="image/png"/>
     <form MIME="application/x-3d-osgb"/>
     <form MIME="model/vnd.collada+xml"/>
+    <form MIME="application/collada-zipped"/>
   </dsTypeModel>
 </dsCompositeModel>

@@ -99,15 +99,21 @@ function islandora_sp_3d_islandora_sp_3d_islandora_view_object($object, $page_nu
 
         $modulePath = drupal_get_path('module', 'islandora_sp_3d');
 
+        drupal_add_js($modulePath . '/js/threejs/three.js');
+        drupal_add_js($modulePath . '/js/threejs/three.collada.loader.js');
+        drupal_add_js($modulePath . '/js/threejs/three.orbit.controls.js');
+        drupal_add_js($modulePath . '/js/ColladaArchiveLoader/ColladaArchiveLoader.js');
+        drupal_add_js($modulePath . '/js/jszip/jszip.min.js');
+        drupal_add_js($modulePath . '/js/pako/pako_deflate.min.js');
+        drupal_add_js($modulePath . '/js/pako/pako_inflate.min.js');
+        drupal_add_js($modulePath . '/js/pako/pako.min.js');
         drupal_add_js($modulePath . '/js/basename.js');
-        drupal_add_js($modulePath . '/js/three.js');
-        drupal_add_js($modulePath . '/js/three.collada.loader.js');
-        drupal_add_js($modulePath . '/js/three.orbit.controls.js');
         drupal_add_js($modulePath . '/js/app.js');
 
         $data = [
 
             'url'      => url('islandora/object/' . $datastream->parent->id . '/datastream/OBJ/view'),
+            'mime'     => $datastream->mimetype,
             'textures' => $fetcher->getTextures(),
         ];
 
@@ -130,10 +136,12 @@ function islandora_sp_3d_islandora_sp_3d_islandora_view_object($object, $page_nu
 function islandora_sp_3d_file_mimetype_mapping_alter(&$mapping) {
 
     $mapping['mimetypes']['dae']   = 'model/vnd.collada+xml';
+    $mapping['mimetypes']['zae']   = 'application/collada-zipped';
     $mapping['mimetypes']['fbx']   = 'application/octet-stream';
     $mapping['mimetypes']['OSGB']  = 'application/octet-stream';
 
     $mapping['extensions']['dae']  = 'dae';
+    $mapping['extensions']['zae']  = 'zae';
     $mapping['extensions']['fbx']  = 'fbx';
     $mapping['extensions']['OSGB'] = 'OSGB';
 }

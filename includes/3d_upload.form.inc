@@ -15,7 +15,7 @@
 function islandora_sp_3d_3d_upload(array $form, array &$form_state) {
 
     $upload_size     = min((int) ini_get('post_max_size'), (int) ini_get('upload_max_filesize'));
-    $extensions      = ['dae fbx OSGB'];
+    $extensions      = ['dae zae fbx OSGB'];
     $upload_required = variable_get('islandora_require_obj_upload', true);
 
     return [

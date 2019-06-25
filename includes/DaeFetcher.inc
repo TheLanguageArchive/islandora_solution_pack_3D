@@ -40,7 +40,7 @@ class DaeFetcher
     public function getDatastream()
     {
         $datastream  = $this->object->getDatastream('OBJ');
-        $daeDetected = ($datastream && $datastream->mimetype === 'model/vnd.collada+xml' && islandora_datastream_access(ISLANDORA_VIEW_OBJECTS, $datastream));
+        $daeDetected = ($datastream && in_array($datastream->mimetype, array('model/vnd.collada+xml', 'application/collada-zipped')) && islandora_datastream_access(ISLANDORA_VIEW_OBJECTS, $datastream));
 
         $siblings = $this->getSiblings();
 
@@ -50,7 +50,8 @@ class DaeFetcher
 
                 // current object is not DAE
                 // let's get it from siblings
-                if ($sibling['obj'] && $sibling['obj']->mimetype === 'model/vnd.collada+xml') {
+                // TODO: what to do in the unlikely event that we have both DAE and ZAE siblings?
+                if ($sibling['obj'] && in_array($sibling['obj']->mimetype, array('model/vnd.collada+xml', 'application/collada-zipped'))) {
                     $datastream = $sibling['obj'];
                 }
             }
