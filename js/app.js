@@ -127,7 +127,7 @@ SP3DViewer.prototype = {
             this.controls             = new THREE.OrbitControls(this.getCamera(), this.container);
             this.controls.target      = new THREE.Vector3(0, 0, -100);
             this.controls.maxDistance = 250;
-            this.controls.minDistance = 20;
+            this.controls.minDistance = 0;
 
             this.controls.dollyIn(3);
         }
@@ -199,7 +199,7 @@ SP3DViewer.prototype = {
                 }
             });
 
-            var scale = 1;
+            var scale = 5;
             mesh.position.set(0, 0, -100);
             mesh.scale.set(scale, scale, scale);
 
