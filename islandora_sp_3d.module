@@ -119,6 +119,9 @@ function islandora_sp_3d_islandora_sp_3d_islandora_view_object($object, $page_nu
 
         $data['settings'] = [
             'background' => variable_get('islandora_sp_3d_background'),
+	    'scale' => variable_get('islandora_sp_3d_scale'),
+	    'minDistance' => variable_get('islandora_sp_3d_minDistance'),
+	    'maxDistance' => variable_get('islandora_sp_3d_maxDistance'),
         ];
 
         drupal_add_js([

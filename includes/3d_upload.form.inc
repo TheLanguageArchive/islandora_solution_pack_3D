@@ -57,7 +57,6 @@ function islandora_sp_3d_3d_upload_submit($form, &$form_state) {
 
         $file       = file_load($form_state['values']['file']);
         $path       = drupal_realpath($file->uri);
-        $extension  = pathinfo($file->origname, PATHINFO_EXTENSION);
         $datastream = $object->getDatastream('OBJ');
 
         if (!$datastream) {
