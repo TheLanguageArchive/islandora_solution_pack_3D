@@ -1,0 +1,303 @@
+<?php
+
+/**
+ * @file
+ * Main module file for FLAT 3D Viewer.
+ */
+
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\media\Entity\Media;
+use Drupal\node\Entity\Node;
+use Drupal\node\NodeInterface;
+use Drupal\taxonomy\Entity\Term;
+
+/**
+ * Implements hook_theme().
+ *
+ * @param array<string, mixed> $existing
+ *   Existing theme hooks.
+ *
+ * @return array<string, mixed>
+ *   Theme hook definitions.
+ */
+function flat_3d_viewer_theme(array $existing, string $type, string $theme, string $path): array {
+  return [
+    'flat_3d_viewer' => [
+      'variables' => [
+        'url' => NULL,
+        'textures' => [],
+        'width' => '100%',
+        'height' => '500px',
+        'background' => '#eeeeee',
+      ],
+      'template' => 'flat-3d-viewer',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_node_view().
+ *
+ * @param array<string, mixed> $build
+ *   The render array.
+ */
+function flat_3d_viewer_node_view(array &$build, EntityInterface $node, EntityViewDisplayInterface $display, string $view_mode): void {
+  if (!$node instanceof Node || $view_mode !== 'full') {
+    return;
+  }
+
+  $viewer = _flat_3d_viewer_build_viewer($node);
+  if ($viewer) {
+    $viewer['#weight'] = -100;
+    $build['flat_3d_viewer'] = $viewer;
+  }
+}
+
+/**
+ * Builds the 3D viewer render array for a node, or NULL when not applicable.
+ *
+ * Shared by hook_node_view() and the FLAT 3D Viewer block. Returns NULL
+ * unless the node is a "3D Object" model with a viewable .dae/.fbx file (either
+ * on the node itself or on a sibling under the same parent).
+ *
+ * @param \Drupal\node\NodeInterface $node
+ *   The node to build the viewer for.
+ * @param array{width?: string, height?: string, background?: string} $options
+ *   Optional overrides: 'width', 'height', 'background'.
+ *
+ * @return array<string, mixed>|null
+ *   A render array, or NULL when there is nothing to show.
+ */
+function _flat_3d_viewer_build_viewer(NodeInterface $node, array $options = []): ?array {
+  $options += [
+    'width' => '100%',
+    'height' => '600px',
+    'background' => '#eeeeee',
+  ];
+
+  if (!$node->hasField('field_model') || $node->get('field_model')->isEmpty()) {
+    return NULL;
+  }
+  $term = Term::load($node->get('field_model')->target_id);
+  if (!$term || $term->getName() !== '3D Object') {
+    return NULL;
+  }
+
+  $file_url = _flat_3d_viewer_find_model_url($node);
+  if (!$file_url) {
+    return NULL;
+  }
+
+  return [
+    '#theme' => 'flat_3d_viewer',
+    '#url' => $file_url,
+    '#textures' => _flat_3d_viewer_get_textures($node),
+    '#width' => $options['width'],
+    '#height' => $options['height'],
+    '#background' => $options['background'],
+    '#attached' => flat_3d_viewer_attachments($options['background']),
+  ];
+}
+
+/**
+ * Finds the URL of a viewable model file for a node.
+ *
+ * Looks on the node's own 3d_object media first, then falls back to siblings
+ * under the same parent.
+ *
+ * @param \Drupal\node\Entity\Node $node
+ *   The node.
+ *
+ * @return string|null
+ *   An absolute file URL, or NULL if none found.
+ */
+function _flat_3d_viewer_find_model_url(NodeInterface $node): ?string {
+  $supported = ['dae', 'fbx'];
+
+  // 1. A supported file on the current node.
+  $url = _flat_3d_viewer_model_url_for_nodes([$node->id()], $supported);
+  if ($url) {
+    return $url;
+  }
+
+  // 2. Fallback: siblings under the same parent.
+  if ($node->hasField('field_member_of') && !$node->get('field_member_of')->isEmpty()) {
+    $parent_nid = $node->get('field_member_of')->target_id;
+    $sibling_nids = \Drupal::entityQuery('node')
+      ->condition('field_member_of', $parent_nid)
+      ->condition('nid', $node->id(), '<>')
+      ->accessCheck(TRUE)
+      ->execute();
+    if (!empty($sibling_nids)) {
+      return _flat_3d_viewer_model_url_for_nodes($sibling_nids, $supported);
+    }
+  }
+
+  return NULL;
+}
+
+/**
+ * Returns the URL of the first supported 3d_object model among given nodes.
+ *
+ * @param array<int|string> $nids
+ *   Node IDs to search for attached 3d_object media.
+ * @param string[] $supported
+ *   Supported lower-case file extensions.
+ *
+ * @return string|null
+ *   An absolute file URL, or NULL.
+ */
+function _flat_3d_viewer_model_url_for_nodes(array $nids, array $supported): ?string {
+  $mids = \Drupal::entityQuery('media')
+    ->condition('field_media_of', $nids, 'IN')
+    ->condition('bundle', '3d_object')
+    ->accessCheck(TRUE)
+    ->execute();
+
+  foreach ($mids as $mid) {
+    $media = Media::load($mid);
+    if (!$media) {
+      continue;
+    }
+    $source_field = $media->getSource()->getConfiguration()['source_field'];
+    if ($media->hasField($source_field) && !$media->get($source_field)->isEmpty()) {
+      $file_item = $media->get($source_field)->first();
+      if ($file_item && $file_item->entity) {
+        $ext = strtolower(pathinfo($file_item->entity->getFilename(), PATHINFO_EXTENSION));
+        if (in_array($ext, $supported)) {
+          return \Drupal::service('file_url_generator')->generateAbsoluteString($file_item->entity->getFileUri());
+        }
+      }
+    }
+  }
+
+  return NULL;
+}
+
+/**
+ * Helper to get textures from sibling nodes.
+ *
+ * @return array<string, string>
+ *   Texture URLs keyed by filename.
+ */
+function _flat_3d_viewer_get_textures(NodeInterface $node): array {
+  $textures = [];
+  
+  if ($node->hasField('field_member_of') && !$node->get('field_member_of')->isEmpty()) {
+    $parent_nid = $node->get('field_member_of')->target_id;
+    
+    // Find sibling nodes.
+    $query = \Drupal::entityQuery('node')
+      ->condition('field_member_of', $parent_nid)
+      ->condition('nid', $node->id(), '<>')
+      ->accessCheck(TRUE);
+    $sibling_nids = $query->execute();
+    
+    if (!empty($sibling_nids)) {
+      // Find Media entities pointing to these sibling nodes.
+      $query = \Drupal::entityQuery('media')
+        ->condition('field_media_of', $sibling_nids, 'IN')
+        ->accessCheck(TRUE);
+      $mids = $query->execute();
+
+      foreach ($mids as $mid) {
+        $media = Media::load($mid);
+        if ($media && _flat_3d_viewer_is_original_file($media)) {
+          $source_field = $media->getSource()->getConfiguration()['source_field'];
+          if ($media->hasField($source_field) && !$media->get($source_field)->isEmpty()) {
+            $file_item = $media->get($source_field)->first();
+            if ($file_item && $file_item->entity) {
+              $filename = $file_item->entity->getFilename();
+              $textures[$filename] = \Drupal::service('file_url_generator')->generateAbsoluteString($file_item->entity->getFileUri());
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return $textures;
+}
+
+/**
+ * Builds the render-array attachments shared by both viewer entry points.
+ *
+ * Emits an inline <script type="importmap"> in the page head so the browser
+ * can resolve the bare "three" and "fflate" specifiers used by the viewer and
+ * the Three.js add-on loaders. Without this map the ES module imports fail and
+ * the viewer never initializes.
+ *
+ * @param string $background
+ *   The background colour passed through to drupalSettings.
+ *
+ * @return array<string, mixed>
+ *   A render array #attached value.
+ */
+function flat_3d_viewer_attachments(string $background): array {
+  $import_map = _flat_3d_viewer_get_import_map();
+
+  return [
+    'html_head' => [
+      [
+        [
+          '#tag' => 'script',
+          '#attributes' => ['type' => 'importmap'],
+          '#value' => json_encode($import_map, JSON_UNESCAPED_SLASHES),
+        ],
+        // A static key ensures the map is only printed once per page even when
+        // several viewers are present.
+        'flat_3d_viewer_importmap',
+      ],
+    ],
+    'library' => [
+      'flat_3d_viewer/viewer',
+    ],
+    'drupalSettings' => [
+      'flat_3d_viewer' => [
+        'background' => $background,
+        'import_map' => $import_map,
+      ],
+    ],
+  ];
+}
+
+/**
+ * Builds the Three.js import map.
+ *
+ * Only the bare "three" specifier needs mapping; the add-on loaders import it
+ * by that name and are themselves loaded from local relative paths. Prefers the
+ * locally vendored build and falls back to a CDN only if it is missing (see the
+ * flat_3d_viewer:download-libraries Drush command).
+ *
+ * @return array{imports: array{three: string}}
+ *   An import-map structure: ['imports' => ['three' => ...]].
+ */
+function _flat_3d_viewer_get_import_map(): array {
+  $module_path = \Drupal::service('extension.list.module')->getPath('flat_3d_viewer');
+  $three_path = $module_path . '/js/vendor/three/three.module.js';
+
+  if (file_exists(\Drupal::root() . '/' . $three_path)) {
+    $three_url = \Drupal::service('file_url_generator')->generateString($three_path);
+  }
+  else {
+    $three_url = 'https://cdn.jsdelivr.net/npm/three@0.173.0/build/three.module.js';
+  }
+
+  return ['imports' => ['three' => $three_url]];
+}
+
+/**
+ * Check if media has "Original File" use.
+ */
+function _flat_3d_viewer_is_original_file(Media $media): bool {
+  if ($media->hasField('field_media_use')) {
+    foreach ($media->get('field_media_use') as $term_item) {
+      $term = Term::load($term_item->target_id);
+      if ($term && $term->getName() == 'Original File') {
+        return TRUE;
+      }
+    }
+  }
+  return FALSE;
+}

@@ -1,0 +1,13 @@
+{
+    "name": "islandora/flat_3d_viewer",
+    "description": "FLAT 3D Viewer implementation for Drupal.",
+    "type": "drupal-module",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "drupal/core": "^10 || ^11",
+        "composer/installers": "^1.0 || ^2.0"
+    },
+    "suggest": {
+        "npm-asset/three": "Used for 3D rendering in the browser. Recommended version ^0.173.0"
+    }
+}

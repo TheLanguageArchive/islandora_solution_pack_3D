@@ -1,0 +1,24 @@
+field.formatter.settings.three_js_viewer:
+  type: mapping
+  label: 'Three.js 3D Viewer settings'
+  mapping:
+    width:
+      type: string
+      label: 'Width'
+    height:
+      type: string
+      label: 'Height'
+    background:
+      type: string
+      label: 'Background color'
+
+block.settings.flat_3d_viewer:
+  type: block_settings
+  label: 'FLAT 3D Viewer block'
+  mapping:
+    height:
+      type: string
+      label: 'Height'
+    background:
+      type: string
+      label: 'Background color'

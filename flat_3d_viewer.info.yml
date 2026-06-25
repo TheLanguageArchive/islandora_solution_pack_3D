@@ -1,0 +1,8 @@
+name: 'FLAT 3D Viewer'
+description: 'A module to visualize 3D objects using Three.js'
+package: FLAT
+type: module
+core_version_requirement: ^10 || ^11
+dependencies:
+  - islandora:islandora
+  - drupal:media

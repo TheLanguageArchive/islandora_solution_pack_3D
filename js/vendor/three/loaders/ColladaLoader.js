@@ -1,71 +1,96 @@
-/**
- * @author mrdoob / http://mrdoob.com/
- * @author Mugen87 / https://github.com/Mugen87
- */
+import {
+	AmbientLight,
+	AnimationClip,
+	Bone,
+	BufferGeometry,
+	ClampToEdgeWrapping,
+	Color,
+	ColorManagement,
+	DirectionalLight,
+	DoubleSide,
+	FileLoader,
+	Float32BufferAttribute,
+	FrontSide,
+	Group,
+	Line,
+	LineBasicMaterial,
+	LineSegments,
+	Loader,
+	LoaderUtils,
+	MathUtils,
+	Matrix4,
+	Mesh,
+	MeshBasicMaterial,
+	MeshLambertMaterial,
+	MeshPhongMaterial,
+	OrthographicCamera,
+	PerspectiveCamera,
+	PointLight,
+	Quaternion,
+	QuaternionKeyframeTrack,
+	RepeatWrapping,
+	Scene,
+	Skeleton,
+	SkinnedMesh,
+	SpotLight,
+	TextureLoader,
+	Vector2,
+	Vector3,
+	VectorKeyframeTrack,
+	SRGBColorSpace
+} from 'three';
+import { TGALoader } from '../loaders/TGALoader.js';
 
-THREE.ColladaLoader = function ( manager ) {
+class ColladaLoader extends Loader {
 
-	this.manager = ( manager !== undefined ) ? manager : THREE.DefaultLoadingManager;
+	load( url, onLoad, onProgress, onError ) {
 
-};
+		const scope = this;
 
-THREE.ColladaLoader.prototype = {
+		const path = ( scope.path === '' ) ? LoaderUtils.extractUrlBase( url ) : scope.path;
 
-	constructor: THREE.ColladaLoader,
-
-	crossOrigin: 'anonymous',
-
-	load: function ( url, onLoad, onProgress, onError ) {
-
-		var scope = this;
-
-		var path = scope.path === undefined ? THREE.LoaderUtils.extractUrlBase( url ) : scope.path;
-
-		var loader = new THREE.FileLoader( scope.manager );
+		const loader = new FileLoader( scope.manager );
+		loader.setPath( scope.path );
+		loader.setRequestHeader( scope.requestHeader );
+		loader.setWithCredentials( scope.withCredentials );
 		loader.load( url, function ( text ) {
 
-			onLoad( scope.parse( text, path ) );
+			try {
+
+				onLoad( scope.parse( text, path ) );
+
+			} catch ( e ) {
+
+				if ( onError ) {
+
+					onError( e );
+
+				} else {
+
+					console.error( e );
+
+				}
+
+				scope.manager.itemError( url );
+
+			}
 
 		}, onProgress, onError );
 
-	},
+	}
 
-	setPath: function ( value ) {
-
-		this.path = value;
-		return this;
-
-	},
-
-	options: {
-
-		set convertUpAxis( value ) {
-
-			console.warn( 'THREE.ColladaLoader: options.convertUpAxis() has been removed. Up axis is converted automatically.' );
-
-		}
-
-	},
-
-	setCrossOrigin: function ( value ) {
-
-		this.crossOrigin = value;
-		return this;
-
-	},
-
-	parse: function ( text, path ) {
+	parse( text, path ) {
 
 		function getElementsByTagName( xml, name ) {
 
 			// Non recursive xml.getElementsByTagName() ...
 
-			var array = [];
-			var childNodes = xml.childNodes;
+			const array = [];
+			const childNodes = xml.childNodes;
 
-			for ( var i = 0, l = childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = childNodes.length; i < l; i ++ ) {
 
-				var child = childNodes[ i ];
+				const child = childNodes[ i ];
 
 				if ( child.nodeName === name ) {
 
@@ -83,10 +108,10 @@ THREE.ColladaLoader.prototype = {
 
 			if ( text.length === 0 ) return [];
 
-			var parts = text.trim().split( /\s+/ );
-			var array = new Array( parts.length );
+			const parts = text.trim().split( /\s+/ );
+			const array = new Array( parts.length );
 
-			for ( var i = 0, l = parts.length; i < l; i ++ ) {
+			for ( let i = 0, l = parts.length; i < l; i ++ ) {
 
 				array[ i ] = parts[ i ];
 
@@ -100,10 +125,10 @@ THREE.ColladaLoader.prototype = {
 
 			if ( text.length === 0 ) return [];
 
-			var parts = text.trim().split( /\s+/ );
-			var array = new Array( parts.length );
+			const parts = text.trim().split( /\s+/ );
+			const array = new Array( parts.length );
 
-			for ( var i = 0, l = parts.length; i < l; i ++ ) {
+			for ( let i = 0, l = parts.length; i < l; i ++ ) {
 
 				array[ i ] = parseFloat( parts[ i ] );
 
@@ -117,10 +142,10 @@ THREE.ColladaLoader.prototype = {
 
 			if ( text.length === 0 ) return [];
 
-			var parts = text.trim().split( /\s+/ );
-			var array = new Array( parts.length );
+			const parts = text.trim().split( /\s+/ );
+			const array = new Array( parts.length );
 
-			for ( var i = 0, l = parts.length; i < l; i ++ ) {
+			for ( let i = 0, l = parts.length; i < l; i ++ ) {
 
 				array[ i ] = parseInt( parts[ i ] );
 
@@ -183,13 +208,13 @@ THREE.ColladaLoader.prototype = {
 
 		function parseLibrary( xml, libraryName, nodeName, parser ) {
 
-			var library = getElementsByTagName( xml, libraryName )[ 0 ];
+			const library = getElementsByTagName( xml, libraryName )[ 0 ];
 
 			if ( library !== undefined ) {
 
-				var elements = getElementsByTagName( library, nodeName );
+				const elements = getElementsByTagName( library, nodeName );
 
-				for ( var i = 0; i < elements.length; i ++ ) {
+				for ( let i = 0; i < elements.length; i ++ ) {
 
 					parser( elements[ i ] );
 
@@ -201,9 +226,9 @@ THREE.ColladaLoader.prototype = {
 
 		function buildLibrary( data, builder ) {
 
-			for ( var name in data ) {
+			for ( const name in data ) {
 
-				var object = data[ name ];
+				const object = data[ name ];
 				object.build = builder( data[ name ] );
 
 			}
@@ -226,19 +251,21 @@ THREE.ColladaLoader.prototype = {
 
 		function parseAnimation( xml ) {
 
-			var data = {
+			const data = {
 				sources: {},
 				samplers: {},
 				channels: {}
 			};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			let hasChildren = false;
 
-				var child = xml.childNodes[ i ];
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
-				var id;
+				let id;
 
 				switch ( child.nodeName ) {
 
@@ -257,6 +284,12 @@ THREE.ColladaLoader.prototype = {
 						data.channels[ id ] = parseAnimationChannel( child );
 						break;
 
+					case 'animation':
+						// hierarchy of related animations
+						parseAnimation( child );
+						hasChildren = true;
+						break;
+
 					default:
 						console.log( child );
 
@@ -264,27 +297,33 @@ THREE.ColladaLoader.prototype = {
 
 			}
 
-			library.animations[ xml.getAttribute( 'id' ) ] = data;
+			if ( hasChildren === false ) {
+
+				// since 'id' attributes can be optional, it's necessary to generate a UUID for unique assignment
+
+				library.animations[ xml.getAttribute( 'id' ) || MathUtils.generateUUID() ] = data;
+
+			}
 
 		}
 
 		function parseAnimationSampler( xml ) {
 
-			var data = {
+			const data = {
 				inputs: {},
 			};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
 				switch ( child.nodeName ) {
 
 					case 'input':
-						var id = parseId( child.getAttribute( 'source' ) );
-						var semantic = child.getAttribute( 'semantic' );
+						const id = parseId( child.getAttribute( 'source' ) );
+						const semantic = child.getAttribute( 'semantic' );
 						data.inputs[ semantic ] = id;
 						break;
 
@@ -298,21 +337,21 @@ THREE.ColladaLoader.prototype = {
 
 		function parseAnimationChannel( xml ) {
 
-			var data = {};
+			const data = {};
 
-			var target = xml.getAttribute( 'target' );
+			const target = xml.getAttribute( 'target' );
 
 			// parsing SID Addressing Syntax
 
-			var parts = target.split( '/' );
+			let parts = target.split( '/' );
 
-			var id = parts.shift();
-			var sid = parts.shift();
+			const id = parts.shift();
+			let sid = parts.shift();
 
 			// check selection syntax
 
-			var arraySyntax = ( sid.indexOf( '(' ) !== - 1 );
-			var memberSyntax = ( sid.indexOf( '.' ) !== - 1 );
+			const arraySyntax = ( sid.indexOf( '(' ) !== - 1 );
+			const memberSyntax = ( sid.indexOf( '.' ) !== - 1 );
 
 			if ( memberSyntax ) {
 
@@ -326,10 +365,10 @@ THREE.ColladaLoader.prototype = {
 
 				// array-access syntax. can be used to express fields in one-dimensional vectors or two-dimensional matrices.
 
-				var indices = sid.split( '(' );
+				const indices = sid.split( '(' );
 				sid = indices.shift();
 
-				for ( var i = 0; i < indices.length; i ++ ) {
+				for ( let i = 0; i < indices.length; i ++ ) {
 
 					indices[ i ] = parseInt( indices[ i ].replace( /\)/, '' ) );
 
@@ -353,26 +392,26 @@ THREE.ColladaLoader.prototype = {
 
 		function buildAnimation( data ) {
 
-			var tracks = [];
+			const tracks = [];
 
-			var channels = data.channels;
-			var samplers = data.samplers;
-			var sources = data.sources;
+			const channels = data.channels;
+			const samplers = data.samplers;
+			const sources = data.sources;
 
-			for ( var target in channels ) {
+			for ( const target in channels ) {
 
 				if ( channels.hasOwnProperty( target ) ) {
 
-					var channel = channels[ target ];
-					var sampler = samplers[ channel.sampler ];
+					const channel = channels[ target ];
+					const sampler = samplers[ channel.sampler ];
 
-					var inputId = sampler.inputs.INPUT;
-					var outputId = sampler.inputs.OUTPUT;
+					const inputId = sampler.inputs.INPUT;
+					const outputId = sampler.inputs.OUTPUT;
 
-					var inputSource = sources[ inputId ];
-					var outputSource = sources[ outputId ];
+					const inputSource = sources[ inputId ];
+					const outputSource = sources[ outputId ];
 
-					var animation = buildAnimationChannel( channel, inputSource, outputSource );
+					const animation = buildAnimationChannel( channel, inputSource, outputSource );
 
 					createKeyframeTracks( animation, tracks );
 
@@ -392,16 +431,16 @@ THREE.ColladaLoader.prototype = {
 
 		function buildAnimationChannel( channel, inputSource, outputSource ) {
 
-			var node = library.nodes[ channel.id ];
-			var object3D = getNode( node.id );
+			const node = library.nodes[ channel.id ];
+			const object3D = getNode( node.id );
 
-			var transform = node.transforms[ channel.sid ];
-			var defaultMatrix = node.matrix.clone().transpose();
+			const transform = node.transforms[ channel.sid ];
+			const defaultMatrix = node.matrix.clone().transpose();
 
-			var time, stride;
-			var i, il, j, jl;
+			let time, stride;
+			let i, il, j, jl;
 
-			var data = {};
+			const data = {};
 
 			// the collada spec allows the animation of data in various ways.
 			// depending on the transform type (matrix, translate, rotate, scale), we execute different logic
@@ -419,8 +458,8 @@ THREE.ColladaLoader.prototype = {
 
 						if ( channel.arraySyntax === true ) {
 
-							var value = outputSource.array[ stride ];
-							var index = channel.indices[ 0 ] + 4 * channel.indices[ 1 ];
+							const value = outputSource.array[ stride ];
+							const index = channel.indices[ 0 ] + 4 * channel.indices[ 1 ];
 
 							data[ time ][ index ] = value;
 
@@ -452,9 +491,9 @@ THREE.ColladaLoader.prototype = {
 
 			}
 
-			var keyframes = prepareAnimationData( data, defaultMatrix );
+			const keyframes = prepareAnimationData( data, defaultMatrix );
 
-			var animation = {
+			const animation = {
 				name: object3D.uuid,
 				keyframes: keyframes
 			};
@@ -465,11 +504,11 @@ THREE.ColladaLoader.prototype = {
 
 		function prepareAnimationData( data, defaultMatrix ) {
 
-			var keyframes = [];
+			const keyframes = [];
 
 			// transfer data into a sortable array
 
-			for ( var time in data ) {
+			for ( const time in data ) {
 
 				keyframes.push( { time: parseFloat( time ), value: data[ time ] } );
 
@@ -481,7 +520,7 @@ THREE.ColladaLoader.prototype = {
 
 			// now we clean up all animation data, so we can use them for keyframe tracks
 
-			for ( var i = 0; i < 16; i ++ ) {
+			for ( let i = 0; i < 16; i ++ ) {
 
 				transformAnimationData( keyframes, i, defaultMatrix.elements[ i ] );
 
@@ -499,26 +538,26 @@ THREE.ColladaLoader.prototype = {
 
 		}
 
-		var position = new THREE.Vector3();
-		var scale = new THREE.Vector3();
-		var quaternion = new THREE.Quaternion();
+		const position = new Vector3();
+		const scale = new Vector3();
+		const quaternion = new Quaternion();
 
 		function createKeyframeTracks( animation, tracks ) {
 
-			var keyframes = animation.keyframes;
-			var name = animation.name;
+			const keyframes = animation.keyframes;
+			const name = animation.name;
 
-			var times = [];
-			var positionData = [];
-			var quaternionData = [];
-			var scaleData = [];
+			const times = [];
+			const positionData = [];
+			const quaternionData = [];
+			const scaleData = [];
 
-			for ( var i = 0, l = keyframes.length; i < l; i ++ ) {
+			for ( let i = 0, l = keyframes.length; i < l; i ++ ) {
 
-				var keyframe = keyframes[ i ];
+				const keyframe = keyframes[ i ];
 
-				var time = keyframe.time;
-				var value = keyframe.value;
+				const time = keyframe.time;
+				const value = keyframe.value;
 
 				matrix.fromArray( value ).transpose();
 				matrix.decompose( position, quaternion, scale );
@@ -530,9 +569,9 @@ THREE.ColladaLoader.prototype = {
 
 			}
 
-			if ( positionData.length > 0 ) tracks.push( new THREE.VectorKeyframeTrack( name + '.position', times, positionData ) );
-			if ( quaternionData.length > 0 ) tracks.push( new THREE.QuaternionKeyframeTrack( name + '.quaternion', times, quaternionData ) );
-			if ( scaleData.length > 0 ) tracks.push( new THREE.VectorKeyframeTrack( name + '.scale', times, scaleData ) );
+			if ( positionData.length > 0 ) tracks.push( new VectorKeyframeTrack( name + '.position', times, positionData ) );
+			if ( quaternionData.length > 0 ) tracks.push( new QuaternionKeyframeTrack( name + '.quaternion', times, quaternionData ) );
+			if ( scaleData.length > 0 ) tracks.push( new VectorKeyframeTrack( name + '.scale', times, scaleData ) );
 
 			return tracks;
 
@@ -540,10 +579,10 @@ THREE.ColladaLoader.prototype = {
 
 		function transformAnimationData( keyframes, property, defaultValue ) {
 
-			var keyframe;
+			let keyframe;
 
-			var empty = true;
-			var i, l;
+			let empty = true;
+			let i, l;
 
 			// check, if values of a property are missing in our keyframes
 
@@ -587,11 +626,11 @@ THREE.ColladaLoader.prototype = {
 
 		function createMissingKeyframes( keyframes, property ) {
 
-			var prev, next;
+			let prev, next;
 
-			for ( var i = 0, l = keyframes.length; i < l; i ++ ) {
+			for ( let i = 0, l = keyframes.length; i < l; i ++ ) {
 
-				var keyframe = keyframes[ i ];
+				const keyframe = keyframes[ i ];
 
 				if ( keyframe.value[ property ] === null ) {
 
@@ -624,7 +663,7 @@ THREE.ColladaLoader.prototype = {
 
 			while ( i >= 0 ) {
 
-				var keyframe = keyframes[ i ];
+				const keyframe = keyframes[ i ];
 
 				if ( keyframe.value[ property ] !== null ) return keyframe;
 
@@ -640,7 +679,7 @@ THREE.ColladaLoader.prototype = {
 
 			while ( i < keyframes.length ) {
 
-				var keyframe = keyframes[ i ];
+				const keyframe = keyframes[ i ];
 
 				if ( keyframe.value[ property ] !== null ) return keyframe;
 
@@ -669,16 +708,16 @@ THREE.ColladaLoader.prototype = {
 
 		function parseAnimationClip( xml ) {
 
-			var data = {
+			const data = {
 				name: xml.getAttribute( 'id' ) || 'default',
 				start: parseFloat( xml.getAttribute( 'start' ) || 0 ),
 				end: parseFloat( xml.getAttribute( 'end' ) || 0 ),
 				animations: []
 			};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -698,17 +737,17 @@ THREE.ColladaLoader.prototype = {
 
 		function buildAnimationClip( data ) {
 
-			var tracks = [];
+			const tracks = [];
 
-			var name = data.name;
-			var duration = ( data.end - data.start ) || - 1;
-			var animations = data.animations;
+			const name = data.name;
+			const duration = ( data.end - data.start ) || - 1;
+			const animations = data.animations;
 
-			for ( var i = 0, il = animations.length; i < il; i ++ ) {
+			for ( let i = 0, il = animations.length; i < il; i ++ ) {
 
-				var animationTracks = getAnimation( animations[ i ] );
+				const animationTracks = getAnimation( animations[ i ] );
 
-				for ( var j = 0, jl = animationTracks.length; j < jl; j ++ ) {
+				for ( let j = 0, jl = animationTracks.length; j < jl; j ++ ) {
 
 					tracks.push( animationTracks[ j ] );
 
@@ -716,7 +755,7 @@ THREE.ColladaLoader.prototype = {
 
 			}
 
-			return new THREE.AnimationClip( name, duration, tracks );
+			return new AnimationClip( name, duration, tracks );
 
 		}
 
@@ -730,11 +769,11 @@ THREE.ColladaLoader.prototype = {
 
 		function parseController( xml ) {
 
-			var data = {};
+			const data = {};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -761,13 +800,13 @@ THREE.ColladaLoader.prototype = {
 
 		function parseSkin( xml ) {
 
-			var data = {
+			const data = {
 				sources: {}
 			};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -778,7 +817,7 @@ THREE.ColladaLoader.prototype = {
 						break;
 
 					case 'source':
-						var id = child.getAttribute( 'id' );
+						const id = child.getAttribute( 'id' );
 						data.sources[ id ] = parseSource( child );
 						break;
 
@@ -800,21 +839,21 @@ THREE.ColladaLoader.prototype = {
 
 		function parseJoints( xml ) {
 
-			var data = {
+			const data = {
 				inputs: {}
 			};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
 				switch ( child.nodeName ) {
 
 					case 'input':
-						var semantic = child.getAttribute( 'semantic' );
-						var id = parseId( child.getAttribute( 'source' ) );
+						const semantic = child.getAttribute( 'semantic' );
+						const id = parseId( child.getAttribute( 'source' ) );
 						data.inputs[ semantic ] = id;
 						break;
 
@@ -828,22 +867,22 @@ THREE.ColladaLoader.prototype = {
 
 		function parseVertexWeights( xml ) {
 
-			var data = {
+			const data = {
 				inputs: {}
 			};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
 				switch ( child.nodeName ) {
 
 					case 'input':
-						var semantic = child.getAttribute( 'semantic' );
-						var id = parseId( child.getAttribute( 'source' ) );
-						var offset = parseInt( child.getAttribute( 'offset' ) );
+						const semantic = child.getAttribute( 'semantic' );
+						const id = parseId( child.getAttribute( 'source' ) );
+						const offset = parseInt( child.getAttribute( 'offset' ) );
 						data.inputs[ semantic ] = { id: id, offset: offset };
 						break;
 
@@ -865,11 +904,11 @@ THREE.ColladaLoader.prototype = {
 
 		function buildController( data ) {
 
-			var build = {
+			const build = {
 				id: data.id
 			};
 
-			var geometry = library.geometries[ build.id ];
+			const geometry = library.geometries[ build.id ];
 
 			if ( data.skin !== undefined ) {
 
@@ -888,9 +927,9 @@ THREE.ColladaLoader.prototype = {
 
 		function buildSkin( data ) {
 
-			var BONE_LIMIT = 4;
+			const BONE_LIMIT = 4;
 
-			var build = {
+			const build = {
 				joints: [], // this must be an array to preserve the joint order
 				indices: {
 					array: [],
@@ -902,34 +941,34 @@ THREE.ColladaLoader.prototype = {
 				}
 			};
 
-			var sources = data.sources;
-			var vertexWeights = data.vertexWeights;
+			const sources = data.sources;
+			const vertexWeights = data.vertexWeights;
 
-			var vcount = vertexWeights.vcount;
-			var v = vertexWeights.v;
-			var jointOffset = vertexWeights.inputs.JOINT.offset;
-			var weightOffset = vertexWeights.inputs.WEIGHT.offset;
+			const vcount = vertexWeights.vcount;
+			const v = vertexWeights.v;
+			const jointOffset = vertexWeights.inputs.JOINT.offset;
+			const weightOffset = vertexWeights.inputs.WEIGHT.offset;
 
-			var jointSource = data.sources[ data.joints.inputs.JOINT ];
-			var inverseSource = data.sources[ data.joints.inputs.INV_BIND_MATRIX ];
+			const jointSource = data.sources[ data.joints.inputs.JOINT ];
+			const inverseSource = data.sources[ data.joints.inputs.INV_BIND_MATRIX ];
 
-			var weights = sources[ vertexWeights.inputs.WEIGHT.id ].array;
-			var stride = 0;
+			const weights = sources[ vertexWeights.inputs.WEIGHT.id ].array;
+			let stride = 0;
 
-			var i, j, l;
+			let i, j, l;
 
-			// procces skin data for each vertex
+			// process skin data for each vertex
 
 			for ( i = 0, l = vcount.length; i < l; i ++ ) {
 
-				var jointCount = vcount[ i ]; // this is the amount of joints that affect a single vertex
-				var vertexSkinData = [];
+				const jointCount = vcount[ i ]; // this is the amount of joints that affect a single vertex
+				const vertexSkinData = [];
 
 				for ( j = 0; j < jointCount; j ++ ) {
 
-					var skinIndex = v[ stride + jointOffset ];
-					var weightId = v[ stride + weightOffset ];
-					var skinWeight = weights[ weightId ];
+					const skinIndex = v[ stride + jointOffset ];
+					const weightId = v[ stride + weightOffset ];
+					const skinWeight = weights[ weightId ];
 
 					vertexSkinData.push( { index: skinIndex, weight: skinWeight } );
 
@@ -938,7 +977,7 @@ THREE.ColladaLoader.prototype = {
 				}
 
 				// we sort the joints in descending order based on the weights.
-				// this ensures, we only procced the most important joints of the vertex
+				// this ensures, we only proceed the most important joints of the vertex
 
 				vertexSkinData.sort( descending );
 
@@ -947,7 +986,7 @@ THREE.ColladaLoader.prototype = {
 
 				for ( j = 0; j < BONE_LIMIT; j ++ ) {
 
-					var d = vertexSkinData[ j ];
+					const d = vertexSkinData[ j ];
 
 					if ( d !== undefined ) {
 
@@ -969,11 +1008,11 @@ THREE.ColladaLoader.prototype = {
 
 			if ( data.bindShapeMatrix ) {
 
-				build.bindMatrix = new THREE.Matrix4().fromArray( data.bindShapeMatrix ).transpose(); 
+				build.bindMatrix = new Matrix4().fromArray( data.bindShapeMatrix ).transpose();
 
 			} else {
 
-				build.bindMatrix = new THREE.Matrix4().transpose(); 
+				build.bindMatrix = new Matrix4().identity();
 
 			}
 
@@ -981,8 +1020,8 @@ THREE.ColladaLoader.prototype = {
 
 			for ( i = 0, l = jointSource.array.length; i < l; i ++ ) {
 
-				var name = jointSource.array[ i ];
-				var boneInverse = new THREE.Matrix4().fromArray( inverseSource.array, i * inverseSource.stride ).transpose();
+				const name = jointSource.array[ i ];
+				const boneInverse = new Matrix4().fromArray( inverseSource.array, i * inverseSource.stride ).transpose();
 
 				build.joints.push( { name: name, boneInverse: boneInverse } );
 
@@ -1010,14 +1049,11 @@ THREE.ColladaLoader.prototype = {
 
 		function parseImage( xml ) {
 
-			var id   = xml.getAttribute( 'id' );
-			var data = {
+			const data = {
 				init_from: getElementsByTagName( xml, 'init_from' )[ 0 ].textContent
 			};
 
-			data.init_from = THREE.ColladaLoader.prototype.parseImageUrl.call(null, data.init_from);
-
-			library.images[ id ] = data;
+			library.images[ xml.getAttribute( 'id' ) ] = data;
 
 		}
 
@@ -1031,7 +1067,7 @@ THREE.ColladaLoader.prototype = {
 
 		function getImage( id ) {
 
-			var data = library.images[ id ];
+			const data = library.images[ id ];
 
 			if ( data !== undefined ) {
 
@@ -1049,11 +1085,11 @@ THREE.ColladaLoader.prototype = {
 
 		function parseEffect( xml ) {
 
-			var data = {};
+			const data = {};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -1073,14 +1109,14 @@ THREE.ColladaLoader.prototype = {
 
 		function parseEffectProfileCOMMON( xml ) {
 
-			var data = {
+			const data = {
 				surfaces: {},
 				samplers: {}
 			};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -1108,11 +1144,11 @@ THREE.ColladaLoader.prototype = {
 
 		function parseEffectNewparam( xml, data ) {
 
-			var sid = xml.getAttribute( 'sid' );
+			const sid = xml.getAttribute( 'sid' );
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -1134,11 +1170,11 @@ THREE.ColladaLoader.prototype = {
 
 		function parseEffectSurface( xml ) {
 
-			var data = {};
+			const data = {};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -1158,11 +1194,11 @@ THREE.ColladaLoader.prototype = {
 
 		function parseEffectSampler( xml ) {
 
-			var data = {};
+			const data = {};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -1182,11 +1218,11 @@ THREE.ColladaLoader.prototype = {
 
 		function parseEffectTechnique( xml ) {
 
-			var data = {};
+			const data = {};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -1200,6 +1236,10 @@ THREE.ColladaLoader.prototype = {
 						data.parameters = parseEffectParameters( child );
 						break;
 
+					case 'extra':
+						data.extra = parseEffectExtra( child );
+						break;
+
 				}
 
 			}
@@ -1210,11 +1250,11 @@ THREE.ColladaLoader.prototype = {
 
 		function parseEffectParameters( xml ) {
 
-			var data = {};
+			const data = {};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -1223,13 +1263,15 @@ THREE.ColladaLoader.prototype = {
 					case 'emission':
 					case 'diffuse':
 					case 'specular':
+					case 'bump':
+					case 'ambient':
 					case 'shininess':
 					case 'transparency':
 						data[ child.nodeName ] = parseEffectParameter( child );
 						break;
 					case 'transparent':
 						data[ child.nodeName ] = {
-							opaque: child.getAttribute( 'opaque' ),
+							opaque: child.hasAttribute( 'opaque' ) ? child.getAttribute( 'opaque' ) : 'A_ONE',
 							data: parseEffectParameter( child )
 						};
 						break;
@@ -1244,11 +1286,11 @@ THREE.ColladaLoader.prototype = {
 
 		function parseEffectParameter( xml ) {
 
-			var data = {};
+			const data = {};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -1276,13 +1318,13 @@ THREE.ColladaLoader.prototype = {
 
 		function parseEffectParameterTexture( xml ) {
 
-			var data = {
+			const data = {
 				technique: {}
 			};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -1302,9 +1344,9 @@ THREE.ColladaLoader.prototype = {
 
 		function parseEffectParameterTextureExtra( xml, data ) {
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -1322,9 +1364,9 @@ THREE.ColladaLoader.prototype = {
 
 		function parseEffectParameterTextureExtraTechnique( xml, data ) {
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -1358,6 +1400,10 @@ THREE.ColladaLoader.prototype = {
 
 						break;
 
+					case 'bump':
+						data[ child.nodeName ] = parseEffectExtraTechniqueBump( child );
+						break;
+
 				}
 
 			}
@@ -1366,11 +1412,11 @@ THREE.ColladaLoader.prototype = {
 
 		function parseEffectExtra( xml ) {
 
-			var data = {};
+			const data = {};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -1390,11 +1436,11 @@ THREE.ColladaLoader.prototype = {
 
 		function parseEffectExtraTechnique( xml ) {
 
-			var data = {};
+			const data = {};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -1402,6 +1448,34 @@ THREE.ColladaLoader.prototype = {
 
 					case 'double_sided':
 						data[ child.nodeName ] = parseInt( child.textContent );
+						break;
+
+					case 'bump':
+						data[ child.nodeName ] = parseEffectExtraTechniqueBump( child );
+						break;
+
+				}
+
+			}
+
+			return data;
+
+		}
+
+		function parseEffectExtraTechniqueBump( xml ) {
+
+			const data = {};
+
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+
+				const child = xml.childNodes[ i ];
+
+				if ( child.nodeType !== 1 ) continue;
+
+				switch ( child.nodeName ) {
+
+					case 'texture':
+						data[ child.nodeName ] = { id: child.getAttribute( 'texture' ), texcoord: child.getAttribute( 'texcoord' ), extra: parseEffectParameterTexture( child ) };
 						break;
 
 				}
@@ -1428,13 +1502,13 @@ THREE.ColladaLoader.prototype = {
 
 		function parseMaterial( xml ) {
 
-			var data = {
+			const data = {
 				name: xml.getAttribute( 'name' )
 			};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -1452,43 +1526,64 @@ THREE.ColladaLoader.prototype = {
 
 		}
 
+		function getTextureLoader( image ) {
+
+			let loader;
+
+			let extension = image.slice( ( image.lastIndexOf( '.' ) - 1 >>> 0 ) + 2 ); // http://www.jstips.co/en/javascript/get-file-extension/
+			extension = extension.toLowerCase();
+
+			switch ( extension ) {
+
+				case 'tga':
+					loader = tgaLoader;
+					break;
+
+				default:
+					loader = textureLoader;
+
+			}
+
+			return loader;
+
+		}
+
 		function buildMaterial( data ) {
 
-			var effect = getEffect( data.url );
-			var technique = effect.profile.technique;
-			var extra = effect.profile.extra;
+			const effect = getEffect( data.url );
+			const technique = effect.profile.technique;
 
-			var material;
+			let material;
 
 			switch ( technique.type ) {
 
 				case 'phong':
 				case 'blinn':
-					material = new THREE.MeshPhongMaterial();
+					material = new MeshPhongMaterial();
 					break;
 
 				case 'lambert':
-					material = new THREE.MeshLambertMaterial();
+					material = new MeshLambertMaterial();
 					break;
 
 				default:
-					material = new THREE.MeshBasicMaterial();
+					material = new MeshBasicMaterial();
 					break;
 
 			}
 
-			material.name = data.name;
+			material.name = data.name || '';
 
-			function getTexture( textureObject ) {
+			function getTexture( textureObject, colorSpace = null ) {
 
-				var sampler = effect.profile.samplers[ textureObject.id ];
-				var image = null;
+				const sampler = effect.profile.samplers[ textureObject.id ];
+				let image = null;
 
 				// get image
 
 				if ( sampler !== undefined ) {
 
-					var surface = effect.profile.surfaces[ sampler.source ];
+					const surface = effect.profile.surfaces[ sampler.source ];
 					image = getImage( surface.init_from );
 
 				} else {
@@ -1498,32 +1593,50 @@ THREE.ColladaLoader.prototype = {
 
 				}
 
-				// create texture if image is avaiable
+				// create texture if image is available
 
 				if ( image !== null ) {
 
-					var texture = textureLoader.load( image );
+					const loader = getTextureLoader( image );
 
-					var extra = textureObject.extra;
+					if ( loader !== undefined ) {
 
-					if ( extra !== undefined && extra.technique !== undefined && isEmpty( extra.technique ) === false ) {
+						const texture = loader.load( image );
 
-						var technique = extra.technique;
+						const extra = textureObject.extra;
 
-						texture.wrapS = technique.wrapU ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
-						texture.wrapT = technique.wrapV ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+						if ( extra !== undefined && extra.technique !== undefined && isEmpty( extra.technique ) === false ) {
 
-						texture.offset.set( technique.offsetU || 0, technique.offsetV || 0 );
-						texture.repeat.set( technique.repeatU || 1, technique.repeatV || 1 );
+							const technique = extra.technique;
+
+							texture.wrapS = technique.wrapU ? RepeatWrapping : ClampToEdgeWrapping;
+							texture.wrapT = technique.wrapV ? RepeatWrapping : ClampToEdgeWrapping;
+
+							texture.offset.set( technique.offsetU || 0, technique.offsetV || 0 );
+							texture.repeat.set( technique.repeatU || 1, technique.repeatV || 1 );
+
+						} else {
+
+							texture.wrapS = RepeatWrapping;
+							texture.wrapT = RepeatWrapping;
+
+						}
+
+						if ( colorSpace !== null ) {
+
+							texture.colorSpace = colorSpace;
+
+						}
+
+						return texture;
 
 					} else {
 
-						texture.wrapS = THREE.RepeatWrapping;
-						texture.wrapT = THREE.RepeatWrapping;
+						console.warn( 'THREE.ColladaLoader: Loader for texture %s not found.', image );
+
+						return null;
 
 					}
-
-					return texture;
 
 				} else {
 
@@ -1535,38 +1648,48 @@ THREE.ColladaLoader.prototype = {
 
 			}
 
-			var parameters = technique.parameters;
+			const parameters = technique.parameters;
 
-			for ( var key in parameters ) {
+			for ( const key in parameters ) {
 
-				var parameter = parameters[ key ];
+				const parameter = parameters[ key ];
 
 				switch ( key ) {
 
 					case 'diffuse':
 						if ( parameter.color ) material.color.fromArray( parameter.color );
-						if ( parameter.texture ) material.map = getTexture( parameter.texture );
+						if ( parameter.texture ) material.map = getTexture( parameter.texture, SRGBColorSpace );
 						break;
 					case 'specular':
 						if ( parameter.color && material.specular ) material.specular.fromArray( parameter.color );
 						if ( parameter.texture ) material.specularMap = getTexture( parameter.texture );
+						break;
+					case 'bump':
+						if ( parameter.texture ) material.normalMap = getTexture( parameter.texture );
+						break;
+					case 'ambient':
+						if ( parameter.texture ) material.lightMap = getTexture( parameter.texture, SRGBColorSpace );
 						break;
 					case 'shininess':
 						if ( parameter.float && material.shininess ) material.shininess = parameter.float;
 						break;
 					case 'emission':
 						if ( parameter.color && material.emissive ) material.emissive.fromArray( parameter.color );
-						if ( parameter.texture ) material.emissiveMap = getTexture( parameter.texture );
+						if ( parameter.texture ) material.emissiveMap = getTexture( parameter.texture, SRGBColorSpace );
 						break;
 
 				}
 
 			}
 
+			ColorManagement.toWorkingColorSpace( material.color, SRGBColorSpace );
+			if ( material.specular ) ColorManagement.toWorkingColorSpace( material.specular, SRGBColorSpace );
+			if ( material.emissive ) ColorManagement.toWorkingColorSpace( material.emissive, SRGBColorSpace );
+
 			//
 
-			var transparent = parameters[ 'transparent' ];
-			var transparency = parameters[ 'transparency' ];
+			let transparent = parameters[ 'transparent' ];
+			let transparency = parameters[ 'transparency' ];
 
 			// <transparency> does not exist but <transparent>
 
@@ -1602,7 +1725,7 @@ THREE.ColladaLoader.prototype = {
 
 				} else {
 
-					var color = transparent.data.color;
+					const color = transparent.data.color;
 
 					switch ( transparent.opaque ) {
 
@@ -1631,9 +1754,29 @@ THREE.ColladaLoader.prototype = {
 
 			//
 
-			if ( extra !== undefined && extra.technique !== undefined && extra.technique.double_sided === 1 ) {
 
-				material.side = THREE.DoubleSide;
+			if ( technique.extra !== undefined && technique.extra.technique !== undefined ) {
+
+				const techniques = technique.extra.technique;
+
+				for ( const k in techniques ) {
+
+					const v = techniques[ k ];
+
+					switch ( k ) {
+
+						case 'double_sided':
+							material.side = ( v === 1 ? DoubleSide : FrontSide );
+							break;
+
+						case 'bump':
+							material.normalMap = getTexture( v.texture );
+							material.normalScale = new Vector2( 1, 1 );
+							break;
+
+					}
+
+				}
 
 			}
 
@@ -1651,13 +1794,13 @@ THREE.ColladaLoader.prototype = {
 
 		function parseCamera( xml ) {
 
-			var data = {
+			const data = {
 				name: xml.getAttribute( 'name' )
 			};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -1677,9 +1820,9 @@ THREE.ColladaLoader.prototype = {
 
 		function parseCameraOptics( xml ) {
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				switch ( child.nodeName ) {
 
@@ -1696,11 +1839,11 @@ THREE.ColladaLoader.prototype = {
 
 		function parseCameraTechnique( xml ) {
 
-			var data = {};
+			const data = {};
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				switch ( child.nodeName ) {
 
@@ -1722,11 +1865,11 @@ THREE.ColladaLoader.prototype = {
 
 		function parseCameraParameters( xml ) {
 
-			var data = {};
+			const data = {};
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				switch ( child.nodeName ) {
 
@@ -1750,12 +1893,12 @@ THREE.ColladaLoader.prototype = {
 
 		function buildCamera( data ) {
 
-			var camera;
+			let camera;
 
 			switch ( data.optics.technique ) {
 
 				case 'perspective':
-					camera = new THREE.PerspectiveCamera(
+					camera = new PerspectiveCamera(
 						data.optics.parameters.yfov,
 						data.optics.parameters.aspect_ratio,
 						data.optics.parameters.znear,
@@ -1764,9 +1907,9 @@ THREE.ColladaLoader.prototype = {
 					break;
 
 				case 'orthographic':
-					var ymag = data.optics.parameters.ymag;
-					var xmag = data.optics.parameters.xmag;
-					var aspectRatio = data.optics.parameters.aspect_ratio;
+					let ymag = data.optics.parameters.ymag;
+					let xmag = data.optics.parameters.xmag;
+					const aspectRatio = data.optics.parameters.aspect_ratio;
 
 					xmag = ( xmag === undefined ) ? ( ymag * aspectRatio ) : xmag;
 					ymag = ( ymag === undefined ) ? ( xmag / aspectRatio ) : ymag;
@@ -1774,7 +1917,7 @@ THREE.ColladaLoader.prototype = {
 					xmag *= 0.5;
 					ymag *= 0.5;
 
-					camera = new THREE.OrthographicCamera(
+					camera = new OrthographicCamera(
 						- xmag, xmag, ymag, - ymag, // left, right, top, bottom
 						data.optics.parameters.znear,
 						data.optics.parameters.zfar
@@ -1782,12 +1925,12 @@ THREE.ColladaLoader.prototype = {
 					break;
 
 				default:
-					camera = new THREE.PerspectiveCamera();
+					camera = new PerspectiveCamera();
 					break;
 
 			}
 
-			camera.name = data.name;
+			camera.name = data.name || '';
 
 			return camera;
 
@@ -1795,7 +1938,7 @@ THREE.ColladaLoader.prototype = {
 
 		function getCamera( id ) {
 
-			var data = library.cameras[ id ];
+			const data = library.cameras[ id ];
 
 			if ( data !== undefined ) {
 
@@ -1813,11 +1956,11 @@ THREE.ColladaLoader.prototype = {
 
 		function parseLight( xml ) {
 
-			var data = {};
+			let data = {};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -1837,11 +1980,11 @@ THREE.ColladaLoader.prototype = {
 
 		function parseLightTechnique( xml ) {
 
-			var data = {};
+			const data = {};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -1865,19 +2008,20 @@ THREE.ColladaLoader.prototype = {
 
 		function parseLightParameters( xml ) {
 
-			var data = {};
+			const data = {};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
 				switch ( child.nodeName ) {
 
 					case 'color':
-						var array = parseFloats( child.textContent );
-						data.color = new THREE.Color().fromArray( array );
+						const array = parseFloats( child.textContent );
+						data.color = new Color().fromArray( array );
+						ColorManagement.toWorkingColorSpace( data.color, SRGBColorSpace );
 						break;
 
 					case 'falloff_angle':
@@ -1885,7 +2029,7 @@ THREE.ColladaLoader.prototype = {
 						break;
 
 					case 'quadratic_attenuation':
-						var f = parseFloat( child.textContent );
+						const f = parseFloat( child.textContent );
 						data.distance = f ? Math.sqrt( 1 / f ) : 0;
 						break;
 
@@ -1899,24 +2043,24 @@ THREE.ColladaLoader.prototype = {
 
 		function buildLight( data ) {
 
-			var light;
+			let light;
 
 			switch ( data.technique ) {
 
 				case 'directional':
-					light = new THREE.DirectionalLight();
+					light = new DirectionalLight();
 					break;
 
 				case 'point':
-					light = new THREE.PointLight();
+					light = new PointLight();
 					break;
 
 				case 'spot':
-					light = new THREE.SpotLight();
+					light = new SpotLight();
 					break;
 
 				case 'ambient':
-					light = new THREE.AmbientLight();
+					light = new AmbientLight();
 					break;
 
 			}
@@ -1930,7 +2074,7 @@ THREE.ColladaLoader.prototype = {
 
 		function getLight( id ) {
 
-			var data = library.lights[ id ];
+			const data = library.lights[ id ];
 
 			if ( data !== undefined ) {
 
@@ -1948,25 +2092,25 @@ THREE.ColladaLoader.prototype = {
 
 		function parseGeometry( xml ) {
 
-			var data = {
+			const data = {
 				name: xml.getAttribute( 'name' ),
 				sources: {},
 				vertices: {},
 				primitives: []
 			};
 
-			var mesh = getElementsByTagName( xml, 'mesh' )[ 0 ];
+			const mesh = getElementsByTagName( xml, 'mesh' )[ 0 ];
 
 			// the following tags inside geometry are not supported yet (see https://github.com/mrdoob/three.js/pull/12606): convex_mesh, spline, brep
 			if ( mesh === undefined ) return;
 
-			for ( var i = 0; i < mesh.childNodes.length; i ++ ) {
+			for ( let i = 0; i < mesh.childNodes.length; i ++ ) {
 
-				var child = mesh.childNodes[ i ];
+				const child = mesh.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
-				var id = child.getAttribute( 'id' );
+				const id = child.getAttribute( 'id' );
 
 				switch ( child.nodeName ) {
 
@@ -2003,14 +2147,14 @@ THREE.ColladaLoader.prototype = {
 
 		function parseSource( xml ) {
 
-			var data = {
+			const data = {
 				array: [],
 				stride: 3
 			};
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -2025,13 +2169,14 @@ THREE.ColladaLoader.prototype = {
 						break;
 
 					case 'technique_common':
-						var accessor = getElementsByTagName( child, 'accessor' )[ 0 ];
+						const accessor = getElementsByTagName( child, 'accessor' )[ 0 ];
 
 						if ( accessor !== undefined ) {
 
 							data.stride = parseInt( accessor.getAttribute( 'stride' ) );
 
 						}
+
 						break;
 
 				}
@@ -2044,11 +2189,11 @@ THREE.ColladaLoader.prototype = {
 
 		function parseGeometryVertices( xml ) {
 
-			var data = {};
+			const data = {};
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -2062,7 +2207,7 @@ THREE.ColladaLoader.prototype = {
 
 		function parseGeometryPrimitive( xml ) {
 
-			var primitive = {
+			const primitive = {
 				type: xml.nodeName,
 				material: xml.getAttribute( 'material' ),
 				count: parseInt( xml.getAttribute( 'count' ) ),
@@ -2071,19 +2216,21 @@ THREE.ColladaLoader.prototype = {
 				hasUV: false
 			};
 
-			for ( var i = 0, l = xml.childNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = xml.childNodes.length; i < l; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
 				switch ( child.nodeName ) {
 
 					case 'input':
-						var id = parseId( child.getAttribute( 'source' ) );
-						var semantic = child.getAttribute( 'semantic' );
-						var offset = parseInt( child.getAttribute( 'offset' ) );
-						primitive.inputs[ semantic ] = { id: id, offset: offset };
+						const id = parseId( child.getAttribute( 'source' ) );
+						const semantic = child.getAttribute( 'semantic' );
+						const offset = parseInt( child.getAttribute( 'offset' ) );
+						const set = parseInt( child.getAttribute( 'set' ) );
+						const inputname = ( set > 0 ? semantic + set : semantic );
+						primitive.inputs[ inputname ] = { id: id, offset: offset };
 						primitive.stride = Math.max( primitive.stride, offset + 1 );
 						if ( semantic === 'TEXCOORD' ) primitive.hasUV = true;
 						break;
@@ -2106,11 +2253,11 @@ THREE.ColladaLoader.prototype = {
 
 		function groupPrimitives( primitives ) {
 
-			var build = {};
+			const build = {};
 
-			for ( var i = 0; i < primitives.length; i ++ ) {
+			for ( let i = 0; i < primitives.length; i ++ ) {
 
-				var primitive = primitives[ i ];
+				const primitive = primitives[ i ];
 
 				if ( build[ primitive.type ] === undefined ) build[ primitive.type ] = [];
 
@@ -2124,11 +2271,11 @@ THREE.ColladaLoader.prototype = {
 
 		function checkUVCoordinates( primitives ) {
 
-			var count = 0;
+			let count = 0;
 
-			for ( var i = 0, l = primitives.length; i < l; i ++ ) {
+			for ( let i = 0, l = primitives.length; i < l; i ++ ) {
 
-				var primitive = primitives[ i ];
+				const primitive = primitives[ i ];
 
 				if ( primitive.hasUV === true ) {
 
@@ -2148,22 +2295,22 @@ THREE.ColladaLoader.prototype = {
 
 		function buildGeometry( data ) {
 
-			var build = {};
+			const build = {};
 
-			var sources = data.sources;
-			var vertices = data.vertices;
-			var primitives = data.primitives;
+			const sources = data.sources;
+			const vertices = data.vertices;
+			const primitives = data.primitives;
 
 			if ( primitives.length === 0 ) return {};
 
 			// our goal is to create one buffer geometry for a single type of primitives
 			// first, we group all primitives by their type
 
-			var groupedPrimitives = groupPrimitives( primitives );
+			const groupedPrimitives = groupPrimitives( primitives );
 
-			for ( var type in groupedPrimitives ) {
+			for ( const type in groupedPrimitives ) {
 
-				var primitiveType = groupedPrimitives[ type ];
+				const primitiveType = groupedPrimitives[ type ];
 
 				// second, ensure consistent uv coordinates for each type of primitives (polylist,triangles or lines)
 
@@ -2181,30 +2328,31 @@ THREE.ColladaLoader.prototype = {
 
 		function buildGeometryType( primitives, sources, vertices ) {
 
-			var build = {};
+			const build = {};
 
-			var position = { array: [], stride: 0 };
-			var normal = { array: [], stride: 0 };
-			var uv = { array: [], stride: 0 };
-			var color = { array: [], stride: 0 };
+			const position = { array: [], stride: 0 };
+			const normal = { array: [], stride: 0 };
+			const uv = { array: [], stride: 0 };
+			const uv1 = { array: [], stride: 0 };
+			const color = { array: [], stride: 0 };
 
-			var skinIndex = { array: [], stride: 4 };
-			var skinWeight = { array: [], stride: 4 };
+			const skinIndex = { array: [], stride: 4 };
+			const skinWeight = { array: [], stride: 4 };
 
-			var geometry = new THREE.BufferGeometry();
+			const geometry = new BufferGeometry();
 
-			var materialKeys = [];
+			const materialKeys = [];
 
-			var start = 0;
+			let start = 0;
 
-			for ( var p = 0; p < primitives.length; p ++ ) {
+			for ( let p = 0; p < primitives.length; p ++ ) {
 
-				var primitive = primitives[ p ];
-				var inputs = primitive.inputs;
+				const primitive = primitives[ p ];
+				const inputs = primitive.inputs;
 
 				// groups
 
-				var count = 0;
+				let count = 0;
 
 				switch ( primitive.type ) {
 
@@ -2219,9 +2367,9 @@ THREE.ColladaLoader.prototype = {
 
 					case 'polylist':
 
-						for ( var g = 0; g < primitive.count; g ++ ) {
+						for ( let g = 0; g < primitive.count; g ++ ) {
 
-							var vc = primitive.vcount[ g ];
+							const vc = primitive.vcount[ g ];
 
 							switch ( vc ) {
 
@@ -2244,7 +2392,7 @@ THREE.ColladaLoader.prototype = {
 						break;
 
 					default:
-						console.warn( 'THREE.ColladaLoader: Unknow primitive type:', primitive.type );
+						console.warn( 'THREE.ColladaLoader: Unknown primitive type:', primitive.type );
 
 				}
 
@@ -2261,21 +2409,21 @@ THREE.ColladaLoader.prototype = {
 
 				// geometry data
 
-				for ( var name in inputs ) {
+				for ( const name in inputs ) {
 
-					var input = inputs[ name ];
+					const input = inputs[ name ];
 
 					switch ( name )	{
 
 						case 'VERTEX':
-							for ( var key in vertices ) {
+							for ( const key in vertices ) {
 
-								var id = vertices[ key ];
+								const id = vertices[ key ];
 
 								switch ( key ) {
 
 									case 'POSITION':
-										var prevLength = position.array.length;
+										const prevLength = position.array.length;
 										buildGeometryData( primitive, sources[ id ], input.offset, position.array );
 										position.stride = sources[ id ].stride;
 
@@ -2290,9 +2438,9 @@ THREE.ColladaLoader.prototype = {
 
 										if ( primitive.hasUV === false && primitives.uvsNeedsFix === true ) {
 
-											var count = ( position.array.length - prevLength ) / position.stride;
+											const count = ( position.array.length - prevLength ) / position.stride;
 
-											for ( var i = 0; i < count; i ++ ) {
+											for ( let i = 0; i < count; i ++ ) {
 
 												// fill missing uv coordinates
 
@@ -2301,6 +2449,7 @@ THREE.ColladaLoader.prototype = {
 											}
 
 										}
+
 										break;
 
 									case 'NORMAL':
@@ -2318,12 +2467,18 @@ THREE.ColladaLoader.prototype = {
 										uv.stride = sources[ id ].stride;
 										break;
 
+									case 'TEXCOORD1':
+										buildGeometryData( primitive, sources[ id ], input.offset, uv1.array );
+										uv.stride = sources[ id ].stride;
+										break;
+
 									default:
 										console.warn( 'THREE.ColladaLoader: Semantic "%s" not handled in geometry build process.', key );
 
 								}
 
 							}
+
 							break;
 
 						case 'NORMAL':
@@ -2332,13 +2487,18 @@ THREE.ColladaLoader.prototype = {
 							break;
 
 						case 'COLOR':
-							buildGeometryData( primitive, sources[ input.id ], input.offset, color.array );
+							buildGeometryData( primitive, sources[ input.id ], input.offset, color.array, true );
 							color.stride = sources[ input.id ].stride;
 							break;
 
 						case 'TEXCOORD':
 							buildGeometryData( primitive, sources[ input.id ], input.offset, uv.array );
 							uv.stride = sources[ input.id ].stride;
+							break;
+
+						case 'TEXCOORD1':
+							buildGeometryData( primitive, sources[ input.id ], input.offset, uv1.array );
+							uv1.stride = sources[ input.id ].stride;
 							break;
 
 					}
@@ -2349,13 +2509,14 @@ THREE.ColladaLoader.prototype = {
 
 			// build geometry
 
-			if ( position.array.length > 0 ) geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( position.array, position.stride ) );
-			if ( normal.array.length > 0 ) geometry.addAttribute( 'normal', new THREE.Float32BufferAttribute( normal.array, normal.stride ) );
-			if ( color.array.length > 0 ) geometry.addAttribute( 'color', new THREE.Float32BufferAttribute( color.array, color.stride ) );
-			if ( uv.array.length > 0 ) geometry.addAttribute( 'uv', new THREE.Float32BufferAttribute( uv.array, uv.stride ) );
+			if ( position.array.length > 0 ) geometry.setAttribute( 'position', new Float32BufferAttribute( position.array, position.stride ) );
+			if ( normal.array.length > 0 ) geometry.setAttribute( 'normal', new Float32BufferAttribute( normal.array, normal.stride ) );
+			if ( color.array.length > 0 ) geometry.setAttribute( 'color', new Float32BufferAttribute( color.array, color.stride ) );
+			if ( uv.array.length > 0 ) geometry.setAttribute( 'uv', new Float32BufferAttribute( uv.array, uv.stride ) );
+			if ( uv1.array.length > 0 ) geometry.setAttribute( 'uv1', new Float32BufferAttribute( uv1.array, uv1.stride ) );
 
-			if ( skinIndex.array.length > 0 ) geometry.addAttribute( 'skinIndex', new THREE.Float32BufferAttribute( skinIndex.array, skinIndex.stride ) );
-			if ( skinWeight.array.length > 0 ) geometry.addAttribute( 'skinWeight', new THREE.Float32BufferAttribute( skinWeight.array, skinWeight.stride ) );
+			if ( skinIndex.array.length > 0 ) geometry.setAttribute( 'skinIndex', new Float32BufferAttribute( skinIndex.array, skinIndex.stride ) );
+			if ( skinWeight.array.length > 0 ) geometry.setAttribute( 'skinWeight', new Float32BufferAttribute( skinWeight.array, skinWeight.stride ) );
 
 			build.data = geometry;
 			build.type = primitives[ 0 ].type;
@@ -2365,16 +2526,16 @@ THREE.ColladaLoader.prototype = {
 
 		}
 
-		function buildGeometryData( primitive, source, offset, array ) {
+		function buildGeometryData( primitive, source, offset, array, isColor = false ) {
 
-			var indices = primitive.p;
-			var stride = primitive.stride;
-			var vcount = primitive.vcount;
+			const indices = primitive.p;
+			const stride = primitive.stride;
+			const vcount = primitive.vcount;
 
 			function pushVector( i ) {
 
-				var index = indices[ i + offset ] * sourceStride;
-				var length = index + sourceStride;
+				let index = indices[ i + offset ] * sourceStride;
+				const length = index + sourceStride;
 
 				for ( ; index < length; index ++ ) {
 
@@ -2382,44 +2543,61 @@ THREE.ColladaLoader.prototype = {
 
 				}
 
+				if ( isColor ) {
+
+					// convert the vertex colors from srgb to linear if present
+					const startIndex = array.length - sourceStride - 1;
+					tempColor.setRGB(
+						array[ startIndex + 0 ],
+						array[ startIndex + 1 ],
+						array[ startIndex + 2 ],
+						SRGBColorSpace
+					);
+
+					array[ startIndex + 0 ] = tempColor.r;
+					array[ startIndex + 1 ] = tempColor.g;
+					array[ startIndex + 2 ] = tempColor.b;
+
+				}
+
 			}
 
-			var sourceArray = source.array;
-			var sourceStride = source.stride;
+			const sourceArray = source.array;
+			const sourceStride = source.stride;
 
 			if ( primitive.vcount !== undefined ) {
 
-				var index = 0;
+				let index = 0;
 
-				for ( var i = 0, l = vcount.length; i < l; i ++ ) {
+				for ( let i = 0, l = vcount.length; i < l; i ++ ) {
 
-					var count = vcount[ i ];
+					const count = vcount[ i ];
 
 					if ( count === 4 ) {
 
-						var a = index + stride * 0;
-						var b = index + stride * 1;
-						var c = index + stride * 2;
-						var d = index + stride * 3;
+						const a = index + stride * 0;
+						const b = index + stride * 1;
+						const c = index + stride * 2;
+						const d = index + stride * 3;
 
 						pushVector( a ); pushVector( b ); pushVector( d );
 						pushVector( b ); pushVector( c ); pushVector( d );
 
 					} else if ( count === 3 ) {
 
-						var a = index + stride * 0;
-						var b = index + stride * 1;
-						var c = index + stride * 2;
+						const a = index + stride * 0;
+						const b = index + stride * 1;
+						const c = index + stride * 2;
 
 						pushVector( a ); pushVector( b ); pushVector( c );
 
 					} else if ( count > 4 ) {
 
-						for ( var k = 1, kl = ( count - 2 ); k <= kl; k ++ ) {
+						for ( let k = 1, kl = ( count - 2 ); k <= kl; k ++ ) {
 
-							var a = index + stride * 0;
-							var b = index + stride * k;
-							var c = index + stride * ( k + 1 );
+							const a = index + stride * 0;
+							const b = index + stride * k;
+							const c = index + stride * ( k + 1 );
 
 							pushVector( a ); pushVector( b ); pushVector( c );
 
@@ -2433,7 +2611,7 @@ THREE.ColladaLoader.prototype = {
 
 			} else {
 
-				for ( var i = 0, l = indices.length; i < l; i += stride ) {
+				for ( let i = 0, l = indices.length; i < l; i += stride ) {
 
 					pushVector( i );
 
@@ -2453,15 +2631,15 @@ THREE.ColladaLoader.prototype = {
 
 		function parseKinematicsModel( xml ) {
 
-			var data = {
+			const data = {
 				name: xml.getAttribute( 'name' ) || '',
 				joints: {},
 				links: []
 			};
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -2495,9 +2673,9 @@ THREE.ColladaLoader.prototype = {
 
 		function parseKinematicsTechniqueCommon( xml, data ) {
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -2519,11 +2697,11 @@ THREE.ColladaLoader.prototype = {
 
 		function parseKinematicsJoint( xml ) {
 
-			var data;
+			let data;
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -2542,12 +2720,12 @@ THREE.ColladaLoader.prototype = {
 
 		}
 
-		function parseKinematicsJointParameter( xml, data ) {
+		function parseKinematicsJointParameter( xml ) {
 
-			var data = {
+			const data = {
 				sid: xml.getAttribute( 'sid' ),
 				name: xml.getAttribute( 'name' ) || '',
-				axis: new THREE.Vector3(),
+				axis: new Vector3(),
 				limits: {
 					min: 0,
 					max: 0
@@ -2558,21 +2736,21 @@ THREE.ColladaLoader.prototype = {
 				middlePosition: 0
 			};
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
 				switch ( child.nodeName ) {
 
 					case 'axis':
-						var array = parseFloats( child.textContent );
+						const array = parseFloats( child.textContent );
 						data.axis.fromArray( array );
 						break;
 					case 'limits':
-						var max = child.getElementsByTagName( 'max' )[ 0 ];
-						var min = child.getElementsByTagName( 'min' )[ 0 ];
+						const max = child.getElementsByTagName( 'max' )[ 0 ];
+						const min = child.getElementsByTagName( 'min' )[ 0 ];
 
 						data.limits.max = parseFloat( max.textContent );
 						data.limits.min = parseFloat( min.textContent );
@@ -2600,16 +2778,16 @@ THREE.ColladaLoader.prototype = {
 
 		function parseKinematicsLink( xml ) {
 
-			var data = {
+			const data = {
 				sid: xml.getAttribute( 'sid' ),
 				name: xml.getAttribute( 'name' ) || '',
 				attachments: [],
 				transforms: []
 			};
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -2635,15 +2813,15 @@ THREE.ColladaLoader.prototype = {
 
 		function parseKinematicsAttachment( xml ) {
 
-			var data = {
+			const data = {
 				joint: xml.getAttribute( 'joint' ).split( '/' ).pop(),
 				transforms: [],
 				links: []
 			};
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -2669,28 +2847,28 @@ THREE.ColladaLoader.prototype = {
 
 		function parseKinematicsTransform( xml ) {
 
-			var data = {
+			const data = {
 				type: xml.nodeName
 			};
 
-			var array = parseFloats( xml.textContent );
+			const array = parseFloats( xml.textContent );
 
 			switch ( data.type ) {
 
 				case 'matrix':
-					data.obj = new THREE.Matrix4();
+					data.obj = new Matrix4();
 					data.obj.fromArray( array ).transpose();
 					break;
 
 				case 'translate':
-					data.obj = new THREE.Vector3();
+					data.obj = new Vector3();
 					data.obj.fromArray( array );
 					break;
 
 				case 'rotate':
-					data.obj = new THREE.Vector3();
+					data.obj = new Vector3();
 					data.obj.fromArray( array );
-					data.angle = THREE.Math.degToRad( array[ 3 ] );
+					data.angle = MathUtils.degToRad( array[ 3 ] );
 					break;
 
 			}
@@ -2703,14 +2881,14 @@ THREE.ColladaLoader.prototype = {
 
 		function parsePhysicsModel( xml ) {
 
-			var data = {
+			const data = {
 				name: xml.getAttribute( 'name' ) || '',
 				rigidBodies: {}
 			};
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -2731,9 +2909,9 @@ THREE.ColladaLoader.prototype = {
 
 		function parsePhysicsRigidBody( xml, data ) {
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -2751,9 +2929,9 @@ THREE.ColladaLoader.prototype = {
 
 		function parsePhysicsTechniqueCommon( xml, data ) {
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -2764,7 +2942,7 @@ THREE.ColladaLoader.prototype = {
 						break;
 
 					case 'mass':
-						data.mass = parseFloats( child.textContent )[0];
+						data.mass = parseFloats( child.textContent )[ 0 ];
 						break;
 
 				}
@@ -2777,13 +2955,13 @@ THREE.ColladaLoader.prototype = {
 
 		function parseKinematicsScene( xml ) {
 
-			var data = {
+			const data = {
 				bindJointAxis: []
 			};
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
@@ -2803,23 +2981,23 @@ THREE.ColladaLoader.prototype = {
 
 		function parseKinematicsBindJointAxis( xml ) {
 
-			var data = {
+			const data = {
 				target: xml.getAttribute( 'target' ).split( '/' ).pop()
 			};
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
 
 				switch ( child.nodeName ) {
 
 					case 'axis':
-						var param = child.getElementsByTagName( 'param' )[ 0 ];
+						const param = child.getElementsByTagName( 'param' )[ 0 ];
 						data.axis = param.textContent;
-						var tmpJointIndex = data.axis.split( 'inst_' ).pop().split( 'axis' )[ 0 ];
-						data.jointIndex = tmpJointIndex.substr( 0, tmpJointIndex.length - 1 );
+						const tmpJointIndex = data.axis.split( 'inst_' ).pop().split( 'axis' )[ 0 ];
+						data.jointIndex = tmpJointIndex.substring( 0, tmpJointIndex.length - 1 );
 						break;
 
 				}
@@ -2846,32 +3024,32 @@ THREE.ColladaLoader.prototype = {
 
 		function setupKinematics() {
 
-			var kinematicsModelId = Object.keys( library.kinematicsModels )[ 0 ];
-			var kinematicsSceneId = Object.keys( library.kinematicsScenes )[ 0 ];
-			var visualSceneId = Object.keys( library.visualScenes )[ 0 ];
+			const kinematicsModelId = Object.keys( library.kinematicsModels )[ 0 ];
+			const kinematicsSceneId = Object.keys( library.kinematicsScenes )[ 0 ];
+			const visualSceneId = Object.keys( library.visualScenes )[ 0 ];
 
 			if ( kinematicsModelId === undefined || kinematicsSceneId === undefined ) return;
 
-			var kinematicsModel = getKinematicsModel( kinematicsModelId );
-			var kinematicsScene = getKinematicsScene( kinematicsSceneId );
-			var visualScene = getVisualScene( visualSceneId );
+			const kinematicsModel = getKinematicsModel( kinematicsModelId );
+			const kinematicsScene = getKinematicsScene( kinematicsSceneId );
+			const visualScene = getVisualScene( visualSceneId );
 
-			var bindJointAxis = kinematicsScene.bindJointAxis;
-			var jointMap = {};
+			const bindJointAxis = kinematicsScene.bindJointAxis;
+			const jointMap = {};
 
-			for ( var i = 0, l = bindJointAxis.length; i < l; i ++ ) {
+			for ( let i = 0, l = bindJointAxis.length; i < l; i ++ ) {
 
-				var axis = bindJointAxis[ i ];
+				const axis = bindJointAxis[ i ];
 
 				// the result of the following query is an element of type 'translate', 'rotate','scale' or 'matrix'
 
-				var targetElement = collada.querySelector( '[sid="' + axis.target + '"]' );
+				const targetElement = collada.querySelector( '[sid="' + axis.target + '"]' );
 
 				if ( targetElement ) {
 
-					// get the parent of the transfrom element
+					// get the parent of the transform element
 
-					var parentVisualElement = targetElement.parentElement;
+					const parentVisualElement = targetElement.parentElement;
 
 					// connect the joint of the kinematics model with the element in the visual scene
 
@@ -2883,8 +3061,8 @@ THREE.ColladaLoader.prototype = {
 
 			function connect( jointIndex, visualElement ) {
 
-				var visualElementName = visualElement.getAttribute( 'name' );
-				var joint = kinematicsModel.joints[ jointIndex ];
+				const visualElementName = visualElement.getAttribute( 'name' );
+				const joint = kinematicsModel.joints[ jointIndex ];
 
 				visualScene.traverse( function ( object ) {
 
@@ -2903,7 +3081,7 @@ THREE.ColladaLoader.prototype = {
 
 			}
 
-			var m0 = new THREE.Matrix4();
+			const m0 = new Matrix4();
 
 			kinematics = {
 
@@ -2911,7 +3089,7 @@ THREE.ColladaLoader.prototype = {
 
 				getJointValue: function ( jointIndex ) {
 
-					var jointData = jointMap[ jointIndex ];
+					const jointData = jointMap[ jointIndex ];
 
 					if ( jointData ) {
 
@@ -2927,11 +3105,11 @@ THREE.ColladaLoader.prototype = {
 
 				setJointValue: function ( jointIndex, value ) {
 
-					var jointData = jointMap[ jointIndex ];
+					const jointData = jointMap[ jointIndex ];
 
 					if ( jointData ) {
 
-						var joint = jointData.joint;
+						const joint = jointData.joint;
 
 						if ( value > joint.limits.max || value < joint.limits.min ) {
 
@@ -2943,17 +3121,17 @@ THREE.ColladaLoader.prototype = {
 
 						} else {
 
-							var object = jointData.object;
-							var axis = joint.axis;
-							var transforms = jointData.transforms;
+							const object = jointData.object;
+							const axis = joint.axis;
+							const transforms = jointData.transforms;
 
 							matrix.identity();
 
 							// each update, we have to apply all transforms in the correct order
 
-							for ( var i = 0; i < transforms.length; i ++ ) {
+							for ( let i = 0; i < transforms.length; i ++ ) {
 
-								var transform = transforms[ i ];
+								const transform = transforms[ i ];
 
 								// if there is a connection of the transform node with a joint, apply the joint value
 
@@ -2962,7 +3140,7 @@ THREE.ColladaLoader.prototype = {
 									switch ( joint.type ) {
 
 										case 'revolute':
-											matrix.multiply( m0.makeRotationAxis( axis, THREE.Math.degToRad( value ) ) );
+											matrix.multiply( m0.makeRotationAxis( axis, MathUtils.degToRad( value ) ) );
 											break;
 
 										case 'prismatic':
@@ -3022,21 +3200,23 @@ THREE.ColladaLoader.prototype = {
 
 		function buildTransformList( node ) {
 
-			var transforms = [];
+			const transforms = [];
 
-			var xml = collada.querySelector( '[id="' + node.id + '"]' );
+			const xml = collada.querySelector( '[id="' + node.id + '"]' );
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
+
+				let array, vector;
 
 				switch ( child.nodeName ) {
 
 					case 'matrix':
-						var array = parseFloats( child.textContent );
-						var matrix = new THREE.Matrix4().fromArray( array ).transpose();
+						array = parseFloats( child.textContent );
+						const matrix = new Matrix4().fromArray( array ).transpose();
 						transforms.push( {
 							sid: child.getAttribute( 'sid' ),
 							type: child.nodeName,
@@ -3046,8 +3226,8 @@ THREE.ColladaLoader.prototype = {
 
 					case 'translate':
 					case 'scale':
-						var array = parseFloats( child.textContent );
-						var vector = new THREE.Vector3().fromArray( array );
+						array = parseFloats( child.textContent );
+						vector = new Vector3().fromArray( array );
 						transforms.push( {
 							sid: child.getAttribute( 'sid' ),
 							type: child.nodeName,
@@ -3056,9 +3236,9 @@ THREE.ColladaLoader.prototype = {
 						break;
 
 					case 'rotate':
-						var array = parseFloats( child.textContent );
-						var vector = new THREE.Vector3().fromArray( array );
-						var angle = THREE.Math.degToRad( array[ 3 ] );
+						array = parseFloats( child.textContent );
+						vector = new Vector3().fromArray( array );
+						const angle = MathUtils.degToRad( array[ 3 ] );
 						transforms.push( {
 							sid: child.getAttribute( 'sid' ),
 							type: child.nodeName,
@@ -3079,13 +3259,13 @@ THREE.ColladaLoader.prototype = {
 
 		function prepareNodes( xml ) {
 
-			var elements = xml.getElementsByTagName( 'node' );
+			const elements = xml.getElementsByTagName( 'node' );
 
 			// ensure all node elements have id attributes
 
-			for ( var i = 0; i < elements.length; i ++ ) {
+			for ( let i = 0; i < elements.length; i ++ ) {
 
-				var element = elements[ i ];
+				const element = elements[ i ];
 
 				if ( element.hasAttribute( 'id' ) === false ) {
 
@@ -3097,17 +3277,17 @@ THREE.ColladaLoader.prototype = {
 
 		}
 
-		var matrix = new THREE.Matrix4();
-		var vector = new THREE.Vector3();
+		const matrix = new Matrix4();
+		const vector = new Vector3();
 
 		function parseNode( xml ) {
 
-			var data = {
+			const data = {
 				name: xml.getAttribute( 'name' ) || '',
 				type: xml.getAttribute( 'type' ),
 				id: xml.getAttribute( 'id' ),
 				sid: xml.getAttribute( 'sid' ),
-				matrix: new THREE.Matrix4(),
+				matrix: new Matrix4(),
 				nodes: [],
 				instanceCameras: [],
 				instanceControllers: [],
@@ -3117,11 +3297,13 @@ THREE.ColladaLoader.prototype = {
 				transforms: {}
 			};
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				if ( child.nodeType !== 1 ) continue;
+
+				let array;
 
 				switch ( child.nodeName ) {
 
@@ -3151,27 +3333,27 @@ THREE.ColladaLoader.prototype = {
 						break;
 
 					case 'matrix':
-						var array = parseFloats( child.textContent );
+						array = parseFloats( child.textContent );
 						data.matrix.multiply( matrix.fromArray( array ).transpose() );
 						data.transforms[ child.getAttribute( 'sid' ) ] = child.nodeName;
 						break;
 
 					case 'translate':
-						var array = parseFloats( child.textContent );
+						array = parseFloats( child.textContent );
 						vector.fromArray( array );
 						data.matrix.multiply( matrix.makeTranslation( vector.x, vector.y, vector.z ) );
 						data.transforms[ child.getAttribute( 'sid' ) ] = child.nodeName;
 						break;
 
 					case 'rotate':
-						var array = parseFloats( child.textContent );
-						var angle = THREE.Math.degToRad( array[ 3 ] );
+						array = parseFloats( child.textContent );
+						const angle = MathUtils.degToRad( array[ 3 ] );
 						data.matrix.multiply( matrix.makeRotationAxis( vector.fromArray( array ), angle ) );
 						data.transforms[ child.getAttribute( 'sid' ) ] = child.nodeName;
 						break;
 
 					case 'scale':
-						var array = parseFloats( child.textContent );
+						array = parseFloats( child.textContent );
 						data.matrix.scale( vector.fromArray( array ) );
 						data.transforms[ child.getAttribute( 'sid' ) ] = child.nodeName;
 						break;
@@ -3186,7 +3368,15 @@ THREE.ColladaLoader.prototype = {
 
 			}
 
-			library.nodes[ data.id ] = data;
+			if ( hasNode( data.id ) ) {
+
+				console.warn( 'THREE.ColladaLoader: There is already a node with ID %s. Exclude current node from further processing.', data.id );
+
+			} else {
+
+				library.nodes[ data.id ] = data;
+
+			}
 
 			return data;
 
@@ -3194,26 +3384,26 @@ THREE.ColladaLoader.prototype = {
 
 		function parseNodeInstance( xml ) {
 
-			var data = {
+			const data = {
 				id: parseId( xml.getAttribute( 'url' ) ),
 				materials: {},
 				skeletons: []
 			};
 
-			for ( var i = 0; i < xml.childNodes.length; i ++ ) {
+			for ( let i = 0; i < xml.childNodes.length; i ++ ) {
 
-				var child = xml.childNodes[ i ];
+				const child = xml.childNodes[ i ];
 
 				switch ( child.nodeName ) {
 
 					case 'bind_material':
-						var instances = child.getElementsByTagName( 'instance_material' );
+						const instances = child.getElementsByTagName( 'instance_material' );
 
-						for ( var j = 0; j < instances.length; j ++ ) {
+						for ( let j = 0; j < instances.length; j ++ ) {
 
-							var instance = instances[ j ];
-							var symbol = instance.getAttribute( 'symbol' );
-							var target = instance.getAttribute( 'target' );
+							const instance = instances[ j ];
+							const symbol = instance.getAttribute( 'symbol' );
+							const target = instance.getAttribute( 'target' );
 
 							data.materials[ symbol ] = parseId( target );
 
@@ -3238,19 +3428,19 @@ THREE.ColladaLoader.prototype = {
 
 		function buildSkeleton( skeletons, joints ) {
 
-			var boneData = [];
-			var sortedBoneData = [];
+			const boneData = [];
+			const sortedBoneData = [];
 
-			var i, j, data;
+			let i, j, data;
 
 			// a skeleton can have multiple root bones. collada expresses this
-			// situtation with multiple "skeleton" tags per controller instance
+			// situation with multiple "skeleton" tags per controller instance
 
 			for ( i = 0; i < skeletons.length; i ++ ) {
 
-				var skeleton = skeletons[ i ];
+				const skeleton = skeletons[ i ];
 
-				var root;
+				let root;
 
 				if ( hasNode( skeleton ) ) {
 
@@ -3261,16 +3451,16 @@ THREE.ColladaLoader.prototype = {
 
 					// handle case where the skeleton refers to the visual scene (#13335)
 
-					var visualScene = library.visualScenes[ skeleton ];
-					var children = visualScene.children;
+					const visualScene = library.visualScenes[ skeleton ];
+					const children = visualScene.children;
 
-					for ( var j = 0; j < children.length; j ++ ) {
+					for ( let j = 0; j < children.length; j ++ ) {
 
-						var child = children[ j ];
+						const child = children[ j ];
 
 						if ( child.type === 'JOINT' ) {
 
-							var root = getNode( child.id );
+							const root = getNode( child.id );
 							buildBoneHierarchy( root, joints, boneData );
 
 						}
@@ -3322,8 +3512,8 @@ THREE.ColladaLoader.prototype = {
 
 			// setup arrays for skeleton creation
 
-			var bones = [];
-			var boneInverses = [];
+			const bones = [];
+			const boneInverses = [];
 
 			for ( i = 0; i < sortedBoneData.length; i ++ ) {
 
@@ -3334,7 +3524,7 @@ THREE.ColladaLoader.prototype = {
 
 			}
 
-			return new THREE.Skeleton( bones, boneInverses );
+			return new Skeleton( bones, boneInverses );
 
 		}
 
@@ -3346,13 +3536,13 @@ THREE.ColladaLoader.prototype = {
 
 				if ( object.isBone === true ) {
 
-					var boneInverse;
+					let boneInverse;
 
 					// retrieve the boneInverse from the controller data
 
-					for ( var i = 0; i < joints.length; i ++ ) {
+					for ( let i = 0; i < joints.length; i ++ ) {
 
-						var joint = joints[ i ];
+						const joint = joints[ i ];
 
 						if ( joint.name === object.name ) {
 
@@ -3371,7 +3561,7 @@ THREE.ColladaLoader.prototype = {
 						// and weights defined for it. But we still have to add the bone to the sorted bone list in order to
 						// ensure a correct animation of the model.
 
-						boneInverse = new THREE.Matrix4();
+						boneInverse = new Matrix4();
 
 					}
 
@@ -3385,20 +3575,20 @@ THREE.ColladaLoader.prototype = {
 
 		function buildNode( data ) {
 
-			var objects = [];
+			const objects = [];
 
-			var matrix = data.matrix;
-			var nodes = data.nodes;
-			var type = data.type;
-			var instanceCameras = data.instanceCameras;
-			var instanceControllers = data.instanceControllers;
-			var instanceLights = data.instanceLights;
-			var instanceGeometries = data.instanceGeometries;
-			var instanceNodes = data.instanceNodes;
+			const matrix = data.matrix;
+			const nodes = data.nodes;
+			const type = data.type;
+			const instanceCameras = data.instanceCameras;
+			const instanceControllers = data.instanceControllers;
+			const instanceLights = data.instanceLights;
+			const instanceGeometries = data.instanceGeometries;
+			const instanceNodes = data.instanceNodes;
 
 			// nodes
 
-			for ( var i = 0, l = nodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = nodes.length; i < l; i ++ ) {
 
 				objects.push( getNode( nodes[ i ] ) );
 
@@ -3406,9 +3596,9 @@ THREE.ColladaLoader.prototype = {
 
 			// instance cameras
 
-			for ( var i = 0, l = instanceCameras.length; i < l; i ++ ) {
+			for ( let i = 0, l = instanceCameras.length; i < l; i ++ ) {
 
-				var instanceCamera = getCamera( instanceCameras[ i ] );
+				const instanceCamera = getCamera( instanceCameras[ i ] );
 
 				if ( instanceCamera !== null ) {
 
@@ -3420,21 +3610,21 @@ THREE.ColladaLoader.prototype = {
 
 			// instance controllers
 
-			for ( var i = 0, l = instanceControllers.length; i < l; i ++ ) {
+			for ( let i = 0, l = instanceControllers.length; i < l; i ++ ) {
 
-				var instance = instanceControllers[ i ];
-				var controller = getController( instance.id );
-				var geometries = getGeometry( controller.id );
-				var newObjects = buildObjects( geometries, instance.materials );
+				const instance = instanceControllers[ i ];
+				const controller = getController( instance.id );
+				const geometries = getGeometry( controller.id );
+				const newObjects = buildObjects( geometries, instance.materials );
 
-				var skeletons = instance.skeletons;
-				var joints = controller.skin.joints;
+				const skeletons = instance.skeletons;
+				const joints = controller.skin.joints;
 
-				var skeleton = buildSkeleton( skeletons, joints );
+				const skeleton = buildSkeleton( skeletons, joints );
 
-				for ( var j = 0, jl = newObjects.length; j < jl; j ++ ) {
+				for ( let j = 0, jl = newObjects.length; j < jl; j ++ ) {
 
-					var object = newObjects[ j ];
+					const object = newObjects[ j ];
 
 					if ( object.isSkinnedMesh ) {
 
@@ -3451,9 +3641,9 @@ THREE.ColladaLoader.prototype = {
 
 			// instance lights
 
-			for ( var i = 0, l = instanceLights.length; i < l; i ++ ) {
+			for ( let i = 0, l = instanceLights.length; i < l; i ++ ) {
 
-				var instanceLight = getLight( instanceLights[ i ] );
+				const instanceLight = getLight( instanceLights[ i ] );
 
 				if ( instanceLight !== null ) {
 
@@ -3465,17 +3655,17 @@ THREE.ColladaLoader.prototype = {
 
 			// instance geometries
 
-			for ( var i = 0, l = instanceGeometries.length; i < l; i ++ ) {
+			for ( let i = 0, l = instanceGeometries.length; i < l; i ++ ) {
 
-				var instance = instanceGeometries[ i ];
+				const instance = instanceGeometries[ i ];
 
 				// a single geometry instance in collada can lead to multiple object3Ds.
 				// this is the case when primitives are combined like triangles and lines
 
-				var geometries = getGeometry( instance.id );
-				var newObjects = buildObjects( geometries, instance.materials );
+				const geometries = getGeometry( instance.id );
+				const newObjects = buildObjects( geometries, instance.materials );
 
-				for ( var j = 0, jl = newObjects.length; j < jl; j ++ ) {
+				for ( let j = 0, jl = newObjects.length; j < jl; j ++ ) {
 
 					objects.push( newObjects[ j ] );
 
@@ -3485,13 +3675,13 @@ THREE.ColladaLoader.prototype = {
 
 			// instance nodes
 
-			for ( var i = 0, l = instanceNodes.length; i < l; i ++ ) {
+			for ( let i = 0, l = instanceNodes.length; i < l; i ++ ) {
 
 				objects.push( getNode( instanceNodes[ i ] ).clone() );
 
 			}
 
-			var object;
+			let object;
 
 			if ( nodes.length === 0 && objects.length === 1 ) {
 
@@ -3499,9 +3689,9 @@ THREE.ColladaLoader.prototype = {
 
 			} else {
 
-				object = ( type === 'JOINT' ) ? new THREE.Bone() : new THREE.Group();
+				object = ( type === 'JOINT' ) ? new Bone() : new Group();
 
-				for ( var i = 0; i < objects.length; i ++ ) {
+				for ( let i = 0; i < objects.length; i ++ ) {
 
 					object.add( objects[ i ] );
 
@@ -3509,12 +3699,7 @@ THREE.ColladaLoader.prototype = {
 
 			}
 
-			if ( object.name === '' ) {
-
-				object.name = ( type === 'JOINT' ) ? data.sid : data.name;
-
-			}
-
+			object.name = ( type === 'JOINT' ) ? data.sid : data.name;
 			object.matrix.copy( matrix );
 			object.matrix.decompose( object.position, object.quaternion, object.scale );
 
@@ -3522,14 +3707,29 @@ THREE.ColladaLoader.prototype = {
 
 		}
 
+		const fallbackMaterial = new MeshBasicMaterial( {
+			name: Loader.DEFAULT_MATERIAL_NAME,
+			color: 0xff00ff
+		} );
+
 		function resolveMaterialBinding( keys, instanceMaterials ) {
 
-			var materials = [];
+			const materials = [];
 
-			for ( var i = 0, l = keys.length; i < l; i ++ ) {
+			for ( let i = 0, l = keys.length; i < l; i ++ ) {
 
-				var id = instanceMaterials[ keys[ i ] ];
-				materials.push( getMaterial( id ) );
+				const id = instanceMaterials[ keys[ i ] ];
+
+				if ( id === undefined ) {
+
+					console.warn( 'THREE.ColladaLoader: Material with key %s not found. Apply fallback material.', keys[ i ] );
+					materials.push( fallbackMaterial );
+
+				} else {
+
+					materials.push( getMaterial( id ) );
+
+				}
 
 			}
 
@@ -3539,13 +3739,13 @@ THREE.ColladaLoader.prototype = {
 
 		function buildObjects( geometries, instanceMaterials ) {
 
-			var objects = [];
+			const objects = [];
 
-			for ( var type in geometries ) {
+			for ( const type in geometries ) {
 
-				var geometry = geometries[ type ];
+				const geometry = geometries[ type ];
 
-				var materials = resolveMaterialBinding( geometry.materialKeys, instanceMaterials );
+				const materials = resolveMaterialBinding( geometry.materialKeys, instanceMaterials );
 
 				// handle case if no materials are defined
 
@@ -3553,11 +3753,39 @@ THREE.ColladaLoader.prototype = {
 
 					if ( type === 'lines' || type === 'linestrips' ) {
 
-						materials.push( new THREE.LineBasicMaterial() );
+						materials.push( new LineBasicMaterial() );
 
 					} else {
 
-						materials.push( new THREE.MeshPhongMaterial() );
+						materials.push( new MeshPhongMaterial() );
+
+					}
+
+				}
+
+				// Collada allows to use phong and lambert materials with lines. Replacing these cases with LineBasicMaterial.
+
+				if ( type === 'lines' || type === 'linestrips' ) {
+
+					for ( let i = 0, l = materials.length; i < l; i ++ ) {
+
+						const material = materials[ i ];
+
+						if ( material.isMeshPhongMaterial === true || material.isMeshLambertMaterial === true ) {
+
+							const lineMaterial = new LineBasicMaterial();
+
+							// copy compatible properties
+
+							lineMaterial.color.copy( material.color );
+							lineMaterial.opacity = material.opacity;
+							lineMaterial.transparent = material.transparent;
+
+							// replace material
+
+							materials[ i ] = lineMaterial;
+
+						}
 
 					}
 
@@ -3565,47 +3793,38 @@ THREE.ColladaLoader.prototype = {
 
 				// regard skinning
 
-				var skinning = ( geometry.data.attributes.skinIndex !== undefined );
-
-				if ( skinning ) {
-
-					for ( var i = 0, l = materials.length; i < l; i ++ ) {
-
-						materials[ i ].skinning = true;
-
-					}
-
-				}
+				const skinning = ( geometry.data.attributes.skinIndex !== undefined );
 
 				// choose between a single or multi materials (material array)
 
-				var material = ( materials.length === 1 ) ? materials[ 0 ] : materials;
+				const material = ( materials.length === 1 ) ? materials[ 0 ] : materials;
 
 				// now create a specific 3D object
 
-				var object;
+				let object;
 
 				switch ( type ) {
 
 					case 'lines':
-						object = new THREE.LineSegments( geometry.data, material );
+						object = new LineSegments( geometry.data, material );
 						break;
 
 					case 'linestrips':
-						object = new THREE.Line( geometry.data, material );
+						object = new Line( geometry.data, material );
 						break;
 
 					case 'triangles':
 					case 'polylist':
 						if ( skinning ) {
 
-							object = new THREE.SkinnedMesh( geometry.data, material );
+							object = new SkinnedMesh( geometry.data, material );
 
 						} else {
 
-							object = new THREE.Mesh( geometry.data, material );
+							object = new Mesh( geometry.data, material );
 
 						}
+
 						break;
 
 				}
@@ -3634,16 +3853,16 @@ THREE.ColladaLoader.prototype = {
 
 		function parseVisualScene( xml ) {
 
-			var data = {
+			const data = {
 				name: xml.getAttribute( 'name' ),
 				children: []
 			};
 
 			prepareNodes( xml );
 
-			var elements = getElementsByTagName( xml, 'node' );
+			const elements = getElementsByTagName( xml, 'node' );
 
-			for ( var i = 0; i < elements.length; i ++ ) {
+			for ( let i = 0; i < elements.length; i ++ ) {
 
 				data.children.push( parseNode( elements[ i ] ) );
 
@@ -3655,14 +3874,14 @@ THREE.ColladaLoader.prototype = {
 
 		function buildVisualScene( data ) {
 
-			var group = new THREE.Group();
+			const group = new Group();
 			group.name = data.name;
 
-			var children = data.children;
+			const children = data.children;
 
-			for ( var i = 0; i < children.length; i ++ ) {
+			for ( let i = 0; i < children.length; i ++ ) {
 
-				var child = children[ i ];
+				const child = children[ i ];
 
 				group.add( getNode( child.id ) );
 
@@ -3688,14 +3907,14 @@ THREE.ColladaLoader.prototype = {
 
 		function parseScene( xml ) {
 
-			var instance = getElementsByTagName( xml, 'instance_visual_scene' )[ 0 ];
+			const instance = getElementsByTagName( xml, 'instance_visual_scene' )[ 0 ];
 			return getVisualScene( parseId( instance.getAttribute( 'url' ) ) );
 
 		}
 
 		function setupAnimations() {
 
-			var clips = library.clips;
+			const clips = library.clips;
 
 			if ( isEmpty( clips ) === true ) {
 
@@ -3703,13 +3922,13 @@ THREE.ColladaLoader.prototype = {
 
 					// if there are animations but no clips, we create a default clip for playback
 
-					var tracks = [];
+					const tracks = [];
 
-					for ( var id in library.animations ) {
+					for ( const id in library.animations ) {
 
-						var animationTracks = getAnimation( id );
+						const animationTracks = getAnimation( id );
 
-						for ( var i = 0, l = animationTracks.length; i < l; i ++ ) {
+						for ( let i = 0, l = animationTracks.length; i < l; i ++ ) {
 
 							tracks.push( animationTracks[ i ] );
 
@@ -3717,13 +3936,13 @@ THREE.ColladaLoader.prototype = {
 
 					}
 
-					animations.push( new THREE.AnimationClip( 'default', - 1, tracks ) );
+					animations.push( new AnimationClip( 'default', - 1, tracks ) );
 
 				}
 
 			} else {
 
-				for ( var id in clips ) {
+				for ( const id in clips ) {
 
 					animations.push( getAnimationClip( id ) );
 
@@ -3733,34 +3952,97 @@ THREE.ColladaLoader.prototype = {
 
 		}
 
-		if ( text.length === 0 ) {
+		// convert the parser error element into text with each child elements text
+		// separated by new lines.
 
-			return { scene: new THREE.Scene() };
+		function parserErrorToText( parserError ) {
+
+			let result = '';
+			const stack = [ parserError ];
+
+			while ( stack.length ) {
+
+				const node = stack.shift();
+
+				if ( node.nodeType === Node.TEXT_NODE ) {
+
+					result += node.textContent;
+
+				} else {
+
+					result += '\n';
+					stack.push.apply( stack, node.childNodes );
+
+				}
+
+			}
+
+			return result.trim();
 
 		}
 
-		var xml = new DOMParser().parseFromString( text, 'application/xml' );
+		if ( text.length === 0 ) {
 
-		var collada = getElementsByTagName( xml, 'COLLADA' )[ 0 ];
+			return { scene: new Scene() };
+
+		}
+
+		const xml = new DOMParser().parseFromString( text, 'application/xml' );
+
+		const collada = getElementsByTagName( xml, 'COLLADA' )[ 0 ];
+
+		const parserError = xml.getElementsByTagName( 'parsererror' )[ 0 ];
+		if ( parserError !== undefined ) {
+
+			// Chrome will return parser error with a div in it
+
+			const errorElement = getElementsByTagName( parserError, 'div' )[ 0 ];
+			let errorText;
+
+			if ( errorElement ) {
+
+				errorText = errorElement.textContent;
+
+			} else {
+
+				errorText = parserErrorToText( parserError );
+
+			}
+
+			console.error( 'THREE.ColladaLoader: Failed to parse collada file.\n', errorText );
+
+			return null;
+
+		}
 
 		// metadata
 
-		var version = collada.getAttribute( 'version' );
-		console.log( 'THREE.ColladaLoader: File version', version );
+		const version = collada.getAttribute( 'version' );
+		console.debug( 'THREE.ColladaLoader: File version', version );
 
-		var asset = parseAsset( getElementsByTagName( collada, 'asset' )[ 0 ] );
-		var textureLoader = new THREE.TextureLoader( this.manager );
-		textureLoader.setPath( path ).setCrossOrigin( this.crossOrigin );
+		const asset = parseAsset( getElementsByTagName( collada, 'asset' )[ 0 ] );
+		const textureLoader = new TextureLoader( this.manager );
+		textureLoader.setPath( this.resourcePath || path ).setCrossOrigin( this.crossOrigin );
+
+		let tgaLoader;
+
+		if ( TGALoader ) {
+
+			tgaLoader = new TGALoader( this.manager );
+			tgaLoader.setPath( this.resourcePath || path );
+
+		}
 
 		//
 
-		var animations = [];
-		var kinematics = {};
-		var count = 0;
+		const tempColor = new Color();
+		const animations = [];
+		let kinematics = {};
+		let count = 0;
 
 		//
 
-		var library = {
+		const library = {
 			animations: {},
 			clips: {},
 			controllers: {},
@@ -3806,18 +4088,25 @@ THREE.ColladaLoader.prototype = {
 		setupAnimations();
 		setupKinematics();
 
-		var scene = parseScene( getElementsByTagName( collada, 'scene' )[ 0 ] );
+		const scene = parseScene( getElementsByTagName( collada, 'scene' )[ 0 ] );
+		scene.animations = animations;
 
 		if ( asset.upAxis === 'Z_UP' ) {
 
-			scene.quaternion.setFromEuler( new THREE.Euler( - Math.PI / 2, 0, 0 ) );
+			console.warn( 'THREE.ColladaLoader: You are loading an asset with a Z-UP coordinate system. The loader just rotates the asset to transform it into Y-UP. The vertex data are not converted, see #24289.' );
+			scene.rotation.set( - Math.PI / 2, 0, 0 );
 
 		}
 
 		scene.scale.multiplyScalar( asset.unit );
 
 		return {
-			animations: animations,
+			get animations() {
+
+				console.warn( 'THREE.ColladaLoader: Please access animations over scene.animations now.' );
+				return animations;
+
+			},
 			kinematics: kinematics,
 			library: library,
 			scene: scene
@@ -3825,4 +4114,6 @@ THREE.ColladaLoader.prototype = {
 
 	}
 
-};
+}
+
+export { ColladaLoader };

@@ -1,0 +1,24 @@
+{#
+/**
+* @file
+* Default theme implementation for the FLAT 3D Viewer.
+*
+* Available variables:
+* - url: The URL to the 3D model file.
+* - textures: An array of texture URLs keyed by filename.
+* - width: The width of the viewer.
+* - height: The height of the viewer.
+* - background: The background color.
+*
+* @ingroup themeable
+*/
+#}
+<div class="flat-3d-viewer-wrapper" style="max-width: {{ width }};">
+  <div id="flat-3d-viewer" data-url="{{ url }}" data-textures="{{ textures|json_encode }}"
+    data-background="{{ background }}" style="width: 100%; height: {{ height }};">
+  </div>
+  <p class="flat-3d-viewer-instructions"
+    style="margin-top: 10px; font-size: 0.9em; color: #666; font-style: italic;">
+    3D viewer: drag to rotate, scroll or pinch to zoom in/out.
+  </p>
+</div>

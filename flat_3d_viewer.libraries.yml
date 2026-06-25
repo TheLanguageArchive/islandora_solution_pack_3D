@@ -1,0 +1,15 @@
+# The Three.js build and add-on loaders are loaded as ES modules via the import
+# map and relative imports in flat_3d_viewer.js, so they are intentionally
+# not declared as Drupal library assets here.
+viewer:
+  version: 1.1
+  license:
+    name: MIT
+    url: https://github.com/mrdoob/three.js/blob/master/LICENSE
+    gpl-compatible: true
+  js:
+    js/flat_3d_viewer.js: { attributes: { type: module }, preprocess: false }
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once
